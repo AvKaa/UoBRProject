@@ -193,13 +193,40 @@ ggplot(aes(x=num_outliers,color=Estimator,
 linetype=Estimator,y=Value))+
 geom_line()+xlab("Number of outliers")
 
+```
+# 3.4 Box plots and outliers
+```{r} 
+ggplot(Hawks,aes(Species,Weight))+
+  geom_boxplot()
 
+outliers <- function(x){
+  q25 <- quantile(x,0.25,na.rm=1)
+  q75 <- quantile(x,0.75,na.rm=1)
+  IQR <- q75-q25
+  return(x[((x>q75+1.5*IQR|(x<q25-1.5*IQR))&!is.na(x))])
+}
+
+num_outliers<-function(x){
+  return(length(outliers(x)))
+}
+
+Hawks %>%
+  group_by(Species)%>%
+  summarise(num_outliers_weight=num_outliers(Weight))
+```
+
+# 3.5 Covariance and correlation under linear transformations
+```{r}
 
 ```
 
+```{r}
 
+```
 
+```{r}
 
+```
 
 
 
