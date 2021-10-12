@@ -170,6 +170,9 @@ mean(corrupted_hal)
 
 num_outliers_vect<-seq(0,1000)
 means_vect<-c()
+medians_vect<-c()
+t_means_vect<-c()
+
 for(num_outliers in num_outliers_vect){
 corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
 means_vect<-c(means_vect,mean(corrupted_hal))
@@ -179,6 +182,19 @@ t_means_vect<-c(t_means_vect,mean(corrupted_hal,trim=0.1))
 ```
 
 ```{r}
+df_means_medians<-data.frame(
+  num_outliers=num_outliers_vect,
+  mean=means_vect,t_mean=t_means_vect,
+  median=medians_vect)
+
+df_means_medians%>%
+pivot_longer(!num_outliers, names_to = "Estimator", values_to = "Value")%>%
+ggplot(aes(x=num_outliers,color=Estimator,
+linetype=Estimator,y=Value))+
+geom_line()+xlab("Number of outliers")
+
+
+
 ```
 
 
