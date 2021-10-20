@@ -5,9 +5,9 @@ output: html_document
 ```{r}
 library(tidyverse)
 ```
-## 2 Tidy data and iteration
+# 2 Tidy data and iteration
 
-# 2.1 Missing data and iteration
+## 2.1 Missing data and iteration
 ```{r}
 impute_by_median <- function(x){
   med<-median(x,na.rm=1) 
@@ -69,8 +69,31 @@ i not divisible by 5. To generate the dataframe d_xy_missing you may want to mak
 row_number(), map2_dbl(), mutate() as well as sometimes_missing().
 
 ```{r}
+
+df_xy_missing <- df_xy %>%
+  mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y))) %>%
+  head(10)
 ```
+
+Create a new data frame df_xy_imputed with two variables x and y. For the first variable x we have a
+sequence (x1, · · · , xn), which is precisely the same as with df_xy. For the second variable y we have a
+sequence (y
+′
+1
+, · · · , y′
+n
+) which is formed from (˜y1, · · · , y˜n) by imputing any missing values with the median.
+To generate df_xy_imputed from “‘df_xy_missing by applying a combination of the functions mutate and
+impute_by_median().
+
 ```{r}
+
+df_xy_imputed <- df_xy_missing %>%
+  mutate(y=map_dbl(.x=y,~impute_by_median(.x)))
+
+df_xy_imputed
+
+
 ```
 ```{r}
 ```
