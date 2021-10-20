@@ -1,0 +1,125 @@
+---
+title: "Assignment_3"
+output: html_document
+---
+```{r}
+library(tidyverse)
+```
+# 2 Tidy data and iteration
+
+## 2.1 Missing data and iteration
+```{r}
+impute_by_median <- function(x){
+  med<-median(x,na.rm=1) 
+  impute_f <- function(y){
+    if(is.na(y)){
+      return(med)
+    }else{
+      return(y)
+    }
+  }
+  return(map_dbl(x,impute_f))
+}
+v<-c(1,2,NA,4)
+impute_by_median(v)
+```
+
+Next generate a data frame with two variables x and y. For our first variable x we have a sequence
+(x1, x2, . . . , xn) where x1 = 0, xn = 10 and for each i = 1, . . . , n − 1, xi+1 = xi + 0.1. For our second
+variable y we set yi = 5 × xi + 1 for i = 1, . . . , n. Generate data of this form and place within a data frame
+called df_xy.
+
+```{r}
+x <- seq(0,10,0.1)
+y<-5*x+1
+df_xy <- data.frame(x,y)
+df_xy %>% head(5)
+```
+
+The map2() function is similar to the map() function but iterates over two variables in parallel rather
+than one. You can learn more here https://purrr.tidyverse.org/reference/map2.html. The following simple
+example shows you how map2_dbl() can be combined with the mutate() function.
+
+```{r}
+df_xy%>%
+mutate(z=map2_dbl(x,y,~.x+.y))%>%
+head(5)
+```
+
+First create a function sometimes_missing with two variables index and value. The function should return
+NA if index is divisible by 5 and returns value otherwise.
+
+```{r}
+sometimes_missing <- function(index,value){
+  if (index%%5 == 0){
+    return(NA)
+    }
+  else{
+    return(value)
+    }
+}
+sometimes_missing(14,25)
+sometimes_missing(15,25)
+```
+
+Next generate a new data frame called df_xy_missing with two variables x and y, but some missing data.
+For the first variable x we have a sequence (x1, · · · , xn), which is precisely the same as with df_xy. For
+the second variable y we have a sequence (˜y1, · · · , y˜n) where y˜i = NA if i is divisible by 5 and y˜i = yi for
+i not divisible by 5. To generate the dataframe d_xy_missing you may want to make use of the functions
+row_number(), map2_dbl(), mutate() as well as sometimes_missing().
+
+```{r}
+
+df_xy_missing <- df_xy %>%
+  mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y))) %>%
+  head(10)
+```
+
+Create a new data frame df_xy_imputed with two variables x and y. For the first variable x we have a
+sequence (x1, · · · , xn), which is precisely the same as with df_xy. For the second variable y we have a
+sequence (y′1, · · · , y′n) which is formed from (˜y1, · · · , y˜n) by imputing any missing values with the median.
+To generate df_xy_imputed from “‘df_xy_missing by applying a combination of the functions mutate and
+impute_by_median().
+
+```{r}
+
+df_xy_imputed <- df_xy_missing %>%
+  mutate(y=map_dbl(.x=y,~impute_by_median(.x)))
+
+df_xy_imputed
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+```{r}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
