@@ -5,6 +5,19 @@ output: html_document
 ```{r}
 library(tidyverse)
 ```
+# 1 Random experiments, events and sample spaces
+Our first question focuses on key concepts introduced in Lecture 7. Firstly, write down the definition of
+random experiment, event and sample space.
+In small groups come up with your own probabilistic example:
+• What is the random experiment in your example?
+• What are the possible outcomes in your example?
+• What are the events in your example?
+• What is the sample space in your example?
+
+A random experiment is a prodcedure (real/ imagined) which has a well-defined set of possible outcomes and could (at least in principle) be repeated arbitrarily many times.
+An event is a set of possible outcomes.
+A sample space is the set of all possible outcomes of interest for a random experiment.
+
 # 2 Tidy data and iteration
 
 ## 2.1 Missing data and iteration
@@ -71,8 +84,7 @@ row_number(), map2_dbl(), mutate() as well as sometimes_missing().
 ```{r}
 
 df_xy_missing <- df_xy %>%
-  mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y))) %>%
-  head(10)
+  mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y))) 
 ```
 
 Create a new data frame df_xy_imputed with two variables x and y. For the first variable x we have a
@@ -88,21 +100,204 @@ impute_by_median().
 
 ```{r}
 
-df_xy_imputed <- df_xy_missing %>%
+df_xy_impute <- df_xy_missing %>%
   mutate(y=map_dbl(.x=y,~impute_by_median(.x)))
 
-df_xy_imputed
+df_xy_impute
 
 
 ```
+Combine the dataframes df_xy, df_xy_missing and df_xy_impute within a single dataframe called
+df_combined, along with an additional column indicating the source of the data.
+
+
+```{r}
+df_xy<-df_xy%>%
+mutate(source="original")
+df_xy_missing<-df_xy_missing%>%
+mutate(source="corrupted")
+df_xy_impute<-df_xy_impute%>%
+mutate(source="imputed")
+df_combined<-rbind(df_xy,df_xy_missing,df_xy_impute)
+```
+Plot the original data, the corrupted data and the imputed data together together with a trend line for each
+sample.
+```{r}
+ggplot(df_combined,aes(x=x,y=y,color=source))+geom_point()+
+facet_wrap(~source)+geom_smooth(method="lm")
+```
+## 2.2 Tidying data with pivot functions
+
+In this task you will read in data from a spreadsheet and apply some data wrangling tasks to tidy that data.
+First download the excel spreadsheet entitled “HockeyLeague.xlsx”. The excel file contains two spreadsheets - one with the wins for each team and one with the losses for each team. To read this spreadsheet
+into R we shall make use of the readxl library. You may need to install the library:
+```{r}
+#install.packages("readxl")
+```
+The following code shows how to read in a sheet within an excel file as a data frame. You will need to edit
+the folder_path variable to be the directory which contains your copy of the spreadsheet.
+
+```{r}
+library(readxl) # load the readxl library
+folder_path<-"C:/Users/ov21312/OneDrive - University of Bristol/Documents/Rproject/UoBRProject/" # set this to the name of the
+# directory containing "HockeyLeague.xlsx"
+file_name<-"HockeyLeague.xlsx" # set the file name
+file_path<-paste(folder_path,file_name,sep="") # create the file_path
+wins_data_frame<-read_excel(file_path,sheet="Wins") # read of a sheet from an xl file
+```
+Inspect the first 3 rows of the first five columns:
+
+```{r}
+wins_data_frame %>%
+select(1:5)%>%
+head(3)
+
+```
+
+```{r}
+wins_tidy <- wins_data_frame %>%
+  rename("Teams"="...1")%>%
+  pivot_longer(cols=!1,names_to ="Years",values_to="w_over_t") %>%
+  separate("w_over_t",into=c("Wins","Total"),sep=" of ", convert = T)
+
+wins_tidy%>% dim() # check the dimensions
+wins_tidy%>%head(5)
+```
+
+The “HockeyLeague.xlsx” also contains a sheet with the losses for each team by season. Apply a similar
+procedure to read the data from this sheet and transform that data into a dataframe called “losses_tidy”
+with four columns: “Team”, “Year”, “Losses”, “Total” which are similar to thos in the “wins_tidy” data
+frame except for the “Losses” column gives the number of losses for a given season and team, rather than
+the number of losses.
+You may notice that the number of wins plus the number of losses for a given team, in a given year does not
+add up to the total. This is because some of the games are neither wins nor losses but draws. That is, for a
+given year the number of draws is equal to the total number of games minus the sum of the wins and losses.
+
+```{r}
+losses_data_frame<-read_excel(file_path,sheet="Losses")
+losses_tidy <- losses_data_frame %>%
+  rename("Teams"="...1")%>%
+  pivot_longer(cols=!1,names_to ="Years",values_to="l_over_t") %>%
+  separate("l_over_t",into=c("Losses","Total"),sep=" of ", convert = T)
+
+
+losses_tidy%>% dim() # check the dimensions
+losses_tidy%>%head(5)
+```
+Now combine your two data frames, “wins_tidy” and “losses_tidy”, into a single data frame entitled
+“hockey_df” which has 248 rows and 9 columns: A “Team” column which gives the name of the team
+as a character, the “Year” column which gives the season year, the “Wins” column which gives the number
+of wins for that team in the given year, the “Losses” column which gives the number of losses for that team
+in the given year and the “Draws” column which gives the number of draws for that team in the given year,
+the “Wins_rt” which gives the wins as a proportion of the total number of games (ie. Wins/Total) and
+similarly the “Losses_rt” and the “Draws_rt” which gives the losses and draws as a proportion of the total,
+respectively. To do this you can make use of the mutate() function. You may also want to utilise the
+across() function for a slightly neater solution.
+   Joining, by = c("Team", "Year", "Total")
+
+```{r}
+hockey_df <- inner_join(wins_tidy,losses_tidy) %>%
+  mutate(Draws = Total-Losses-Wins) %>%
+  mutate(Wins_rt = Wins/Total) %>%
+  mutate(Losses_rt = Losses/Total) %>%
+  mutate(Draws_rt = Draws/Total)
+
+hockey_df%>% dim() # check the dimensions
+hockey_df%>%head(5)
+```
+
+To conclude this task generate a summary data frame which displays, for each team, the median win rate,
+the mean win rate, the median loss rate, the mean loss rate, the median draw rate and the mean draw
+rate. The number of rows in your summary should equal the number of teams. These should be sorted
+in descending order or median win rate. You may want to make use of the following functions: select(),
+group_by(), across(), arrange().
+
+```{r}
+Hockey_sum <- hockey_df %>%
+  select(-Wins,-Draws,-Losses) %>%
+  group_by(Teams) %>%
+  summarise(across(starts_with(c("Wins","Losses","Draws")),list(md=median,mn=mean),.names="{substring(.col,1,1)}_{.fn}"))%>% 
+  arrange(desc(W_md))
+  
+
+Hockey_sum
+```
+## 2.3 Most correlated variables (*)
+
+This data wrangling task is slightly more challenging. You may want to return to this task once you have
+completed the unstarred questions in sections 3 and 4 below.
+The objective is to investigate, for each numerical variable within a data set, which other numerical variables
+have the largest correlation (in absolute value).
+In lecture 6 we introduced the following function called “max_cor_var”. The function entitled
+“max_cor_var” takes as input a data frame “df” and a column name “col_name”. It then extracts
+the variable with name col_name and determines which other numerical variables within the data set have
+the highest correlation (in absolute value) with that variable. It then returns a data frame containing
+the name of the variable “var_name” and the corresponding correlation “cor”. Begin by making sure you
+understand the structure of the function.
+
+```{r}
+max_cor_var<-function(df,col_name){
+# function to determine the variable with maximal correlation
+v_col<-df%>%select(all_of(col_name))
+# extract variable based on col_name
+df_num<-df%>%
+select_if(is.numeric)%>%
+select(-all_of(col_name))
+# select all numeric variables excluding col_name
+correlations<-unlist(map(df_num,
+function(x){cor(x,v_col,use="complete.obs")}))
+# compute correlations with all other numeric variables
+max_abs_cor_var<-names(which(abs(correlations)==max(abs(correlations))))
+# extract the variable name
+cor<-as.double(correlations[max_abs_cor_var])
+# compute the correlation
+return(data.frame(var_name=max_abs_cor_var,cor=cor))
+# return dataframe
+}
+```
+Next generate a new function called “top_correlates_by_var” which takes input a data frame “df” and
+outputs a data frame with a single row. The column names of this output data frame should coincide with
+the names of the numerical columns within the input dataframe “df”. For each column name, the value
+should be equal to variable name corresponding to the numerical variable which has the highest level of
+correlation (in absolute value) to the variable with that column name, but is not equal to it.
+You can test your function as follows. By using the Palmer penguins data set you should obtain the following
+output.
+
+```{r}
+top_correlates_by_var <- function(df){
+  cols_numeric <- df %>%
+  select_if(is.numeric) %>%
+  colnames()
+  
+  max_cor_vars<-map_chr(cols_numeric,~unlist(max_cor_var(df,.x)["var_name"]))
+  max_cor_by_var_name<-data.frame(var_name=cols_numeric,max_cor_var=max_cor_vars)
+  max_cor_by_var_name%>%
+pivot_wider(names_from=var_name,values_from=max_cor_var)
+}
+```
+You can test your function as follows. By using the Palmer penguins data set you should obtain the following
+output.
+
+```{r}
+install.packages("palmerpenguins")
+```
+
+```{r}
+library(palmerpenguins)
+penguins%>%
+top_correlates_by_var()
+
+```
+
 ```{r}
 ```
+
 ```{r}
 ```
+
 ```{r}
 ```
-```{r}
-```
+
 ```{r}
 ```
 
