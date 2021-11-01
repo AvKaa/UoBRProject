@@ -223,13 +223,6 @@ prob_missing_simulation
 prob_missing_theory
 ```
 
-```{r}
-
-```
-
-```{r}
-
-```
 
 
 
