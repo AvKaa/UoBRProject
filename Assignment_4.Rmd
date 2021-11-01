@@ -171,49 +171,56 @@ pmin() and min() here;
 Try this initially with a small number of simulations. Increase your number of simulations to about a
 relatively large number to get a more accurate answer, once everything seems to be working well.
 The next part of the question is more challenging and may be omitted if you are short on time.
+
+```{r}
+num_trials<-10000000 # set the number of trials
+set.seed(0) # set the random seed
+sample_size <- 10
+n_red <- 50
+n_blue <- 30
+n_green <- 20
+total <- n_red+n_blue+n_green
+
+sampling_without_replacement_simulation<-data.frame(trial=1:num_trials)%>%
+  mutate(sample_balls=map(.x=trial,~sample(total,sample_size,replace = F))) %>%
+  mutate(num_reds=map_dbl(.x=sample_balls,~sum(.x<=n_red))) %>%
+  mutate(num_blues=map_dbl(.x=sample_balls,~sum(.x>n_red & .x<=n_red+n_blue))) %>%
+  mutate(num_greens=map_dbl(.x=sample_balls,~sum(.x>n_red+n_blue & .x<=n_red+n_blue+n_green))) %>%
+  mutate(missing=pmin(num_reds,num_blues,num_greens)==0) 
+
+prob_missing_simulation<-mean(sampling_without_replacement_simulation %>%
+                                pull(missing))
+
+```
+
 (*) Once you have a simulation based answer you can try and use “combinations” with n
 k
-
 to compute the
 probability directly. First aim and compute the number of subsets of size 10 from 100 which either entirely
 miss out one of the subsets Reds = {1, . . . , 50}, Blues = {51, . . . , 80}, Greens = {81, . . . , 100}. Be careful
 not to double count some of these subsets! Once you have computed all such subsets combine with the
 formula for the total number of subsets of size 10 from a set of 100, to compute the probability of missing a
 colour
-```{r}
-num_trials<-1000 # set the number of trials
-set.seed(0) # set the random seed
-
-sampling_without_replacement_simulation<-data.frame(trial=1:num_trials)%>%
-  mutate(sample_balls=map(.x=trial,~sample(100,10,replace = F))) %>%
-  mutate(num_reds=map_dbl(.x=sample_balls,~sum(.x<=50))) %>%
-  mutate(num_blues=map_dbl(.x=sample_balls,~sum(.x>50 & .x<=80))) %>%
-  mutate(num_greens=map_dbl(.x=sample_balls,~sum(.x>80 & .x<=100))) %>%
-  mutate(minimum=pmin(num_reds,num_blues,num_greens)) 
-sampling_without_replacement_simulation %>% head(5)
-
-zeros <- nrow(sampling_without_replacement_simulation[sampling_without_replacement_simulation$minimum == "0",])
-proportion_zeros <- zeros/nrow(sampling_without_replacement_simulation)
-proportion_zeros
-# generate collection of num_trials simulations
-
-z <- 10
-rep <- 10
-
-all_reds <- choose(num_trials,z)*(0.5^z)*(0.3^(1-z))*(0.2^(1-z))
-no_reds <- 1-all_reds
-no_reds
-
-prob_red_spheres <- function(z){
-  choose(rep,z)*(0.5^z)*(0.3^(1-z))*(0.2^(1-z))
-}
-
-prob_red_spheres(10)
-```
 
 ```{r}
+# We first compute the number of subsets of size 10 containing no reds, no blues and no greens:
+NR = choose(total-n_red,sample_size)
+NB = choose(total-n_blue,sample_size)
+NG = choose(total-n_green,sample_size)
 
+# Next we count the number of all red, all blue and all green
+MR=choose(n_red,sample_size)
+MB=choose(n_blue,sample_size)
+MG=choose(n_green,sample_size)
 
+Q=NR+NB+NG-MR-MB-MG
+TS = choose(total,sample_size)
+
+num_one_of_each_subsets=TS-NR-NB-NG+MR+MB+MG
+prob_missing_theory=Q/TS
+
+prob_missing_simulation
+prob_missing_theory
 ```
 
 ```{r}

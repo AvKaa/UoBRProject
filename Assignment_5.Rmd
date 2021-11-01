@@ -1,0 +1,104 @@
+---
+title: "Assignment_5"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+# 2 Simulating data with the uniform distribution
+
+
+```{r}
+set.seed(0)
+n<-1000
+sample_X<-data.frame(U=runif(n))%>%
+  mutate(X=case_when(
+  (0<=U)&(U<0.25)~1,
+  (0.25<=U)&(U<0.5)~5,
+  (0.5<=U)&(U<=1)~0))%>%
+  pull(X)
+
+sample_X_015 <- function(alpha,beta,n){
+  sample_X<-data.frame(U=runif(n))%>%
+  mutate(X=case_when(
+  (0<=U)&(U<alpha)~1,
+  (alpha<=U)&(U<(alpha+beta))~5,
+  ((alpha+beta)<=U)&(U<=(1-alpha-beta))~0))%>%
+  pull(X) %>%
+  replace_na(0)
+  return(sample_X) 
+}
+
+sample_X_015(0.5,0.1,10000) %>% 
+  sum(x)/10000
+
+var(x)
+
+
+```
+
+```{r}
+alpha <- 0.1
+beta <- seq(0,0.9,0.01)
+n <- 100
+set.seed(0)
+
+beta_vary<-data.frame(beta=beta) %>%
+  mutate(sample = map(.x=beta,~sample_X_015(alpha,.x,n))) %>%
+  mutate(sample_avg = map_dbl(.x=sample,~mean(.x))) %>% 
+  ggplot(aes(x=beta,y=sample_avg))+
+  geom_line()
+  
+beta_vary
+```
+# 3 The Gaussian distribution
+```{r}
+x <- seq(-4,6,0.1)
+var_1 <- dnorm(x,mean=1,sd=1)
+var_2= dnorm(x,mean=1,sd=sqrt(2))
+var_3= dnorm(x,mean=1,sd=sqrt(3))
+data.frame(x,var_1) %>%
+  mutate(var_2= var_2) %>%
+  mutate(var_3= var_3) %>%
+  pivot_longer(cols=c("var_1","var_2","var_3"), names_to="variance", values_to="var_value") %>%
+  ggplot(aes(x=x,y=var_value,color=variance))+
+  geom_line()+
+  theme_bw()+
+  xlab("X")+
+  ylab("Density")
+
+```
+Quantile functions
+```{r}
+q1 <- quantile(var_1,na.rm=1,probs=seq(0,1,0.1))
+
+ggplot(tibble(x),aes(x))+
+  geom_line(adjust=1,size=1)+
+   theme_bw()+
+  xlab("X")+
+  ylab("Density")
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+
