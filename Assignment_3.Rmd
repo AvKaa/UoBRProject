@@ -5,6 +5,8 @@ output: html_document
 ```{r}
 library(tidyverse)
 ```
+<<<<<<< HEAD
+=======
 # 1 Random experiments, events and sample spaces
 Our first question focuses on key concepts introduced in Lecture 7. Firstly, write down the definition of
 random experiment, event and sample space.
@@ -18,6 +20,7 @@ A random experiment is a prodcedure (real/ imagined) which has a well-defined se
 An event is a set of possible outcomes.
 A sample space is the set of all possible outcomes of interest for a random experiment.
 
+>>>>>>> 1ed6a7d2660bacfa4f750f9720c10b1e61863017
 # 2 Tidy data and iteration
 
 ## 2.1 Missing data and iteration
@@ -84,22 +87,50 @@ row_number(), map2_dbl(), mutate() as well as sometimes_missing().
 ```{r}
 
 df_xy_missing <- df_xy %>%
+<<<<<<< HEAD
+  mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y))) %>%
+  head(10)
+=======
   mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y))) 
+>>>>>>> 1ed6a7d2660bacfa4f750f9720c10b1e61863017
 ```
 
 Create a new data frame df_xy_imputed with two variables x and y. For the first variable x we have a
 sequence (x1, · · · , xn), which is precisely the same as with df_xy. For the second variable y we have a
+<<<<<<< HEAD
+sequence (y′1, · · · , y′n) which is formed from (˜y1, · · · , y˜n) by imputing any missing values with the median.
+=======
 sequence (y
 ′
 1
 , · · · , y′
 n
 ) which is formed from (˜y1, · · · , y˜n) by imputing any missing values with the median.
+>>>>>>> 1ed6a7d2660bacfa4f750f9720c10b1e61863017
 To generate df_xy_imputed from “‘df_xy_missing by applying a combination of the functions mutate and
 impute_by_median().
 
 ```{r}
 
+<<<<<<< HEAD
+df_xy_imputed <- df_xy_missing %>%
+  mutate(y=map_dbl(.x=y,~impute_by_median(.x)))
+
+df_xy_imputed
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+=======
 df_xy_impute <- df_xy_missing %>%
   mutate(y=map_dbl(.x=y,~impute_by_median(.x)))
 
@@ -298,6 +329,7 @@ top_correlates_by_var()
 ```{r}
 ```
 
+>>>>>>> 1ed6a7d2660bacfa4f750f9720c10b1e61863017
 ```{r}
 ```
 
