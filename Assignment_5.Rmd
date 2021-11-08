@@ -54,46 +54,134 @@ beta_vary<-data.frame(beta=beta) %>%
 beta_vary
 ```
 # 3 The Gaussian distribution
+
+Write out the probability density function of a Gaussian random variable with mean µ and standard deviation
+σ > 0.
+Use the help function to look up the following four functions: dnorm(), pnorm(), qnorm() and rnorm().
+Generate a plot which displays the probability density function for three Gaussian distributions:
+
 ```{r}
 x <- seq(-4,6,0.1)
-var_1 <- dnorm(x,mean=1,sd=1)
-var_2= dnorm(x,mean=1,sd=sqrt(2))
-var_3= dnorm(x,mean=1,sd=sqrt(3))
-data.frame(x,var_1) %>%
-  mutate(var_2= var_2) %>%
-  mutate(var_3= var_3) %>%
-  pivot_longer(cols=c("var_1","var_2","var_3"), names_to="variance", values_to="var_value") %>%
-  ggplot(aes(x=x,y=var_value,color=variance))+
+normal_densities_by_x<-data.frame(x=x,density=dnorm(x,mean=1,sd=sqrt(1)),var=1)%>%
+rbind(data.frame(x=x,density=dnorm(x,mean=1,sd=sqrt(2)),var=2))%>%
+rbind(data.frame(x=x,density=dnorm(x,mean=1,sd=sqrt(3)),var=3))
+
+normal_densities_by_x%>%
+  ggplot(aes(x,y=density,color=as.character(var),linetype=as.character(var)))+
   geom_line()+
   theme_bw()+
-  xlab("X")+
-  ylab("Density")
+  labs(color="Variance",linetype="Variance",x="x",y="Density")
+
+
+normal_densities_by_x
 
 ```
-Quantile functions
-```{r}
-q1 <- quantile(var_1,na.rm=1,probs=seq(0,1,0.1))
 
-ggplot(tibble(x),aes(x))+
-  geom_line(adjust=1,size=1)+
-   theme_bw()+
-  xlab("X")+
-  ylab("Density")
+Generate a corresponding plot for the cumulative distribution function for three Gaussian distributions
+
+```{r}
+q1 <- data.frame(x=x,cdf=pnorm(x,mean=1,sd=sqrt(1)),var=1)
+q2 <- data.frame(x=x,cdf=pnorm(x,mean=1,sd=sqrt(2)),var=2)
+q3 <- data.frame(x=x,cdf=pnorm(x,mean=1,sd=sqrt(3)),var=3)
+
+normal_cdf <- q1 %>% rbind(q2) %>% rbind(q3) %>%
+  ggplot(aes(x,y=cdf,color=as.character(var),linetype=as.character(var)))+
+  geom_line()+
+  theme_bw()+
+  labs(color="Variance",linetype="Variance",x="x",y="Cumulative distribution function")
+
+normal_cdf
+```
+Next generate a plot for the quantile function for the same three Gaussian distributions. Describe the relationship
+between the quantile function and the cumulative distribution function.
+
+
+```{r}
+prob <- seq(0,1,0.01)
+
+q1 <- data.frame(p=prob,q=qnorm(prob,mean=1,sd=sqrt(1)),var=1)
+q2 <- data.frame(p=prob,q=qnorm(prob,mean=1,sd=sqrt(2)),var=2)
+q3 <- data.frame(p=prob,q=qnorm(prob,mean=1,sd=sqrt(3)),var=3)
+normal_cdf <- q1 %>% rbind(q2) %>% rbind(q3)
+
+ggplot(normal_cdf,aes(x=p,y=q,color=as.character(var),linetype=as.character(var)))+
+geom_line()+
+theme_bw()+
+labs(color="Variance",linetype="Variance",y="Quantile",x="Probability")
+```
+Now use rnorm() generate a random independent and identically distributed sequence Z1, · · · , Zn ∼ N (0, 1) so
+that each Zi ∼ N (0, 1) has standard Gaussian distribution with n = 100. Make sure your code is reproducible
+by using the set.seed() function. Store your random sample in a vector called “standardGaussianSample”.
+
+```{r}
+set.seed(0)
+n=100
+standardGaussianSample <- rnorm(n,0,1)
+mean1Var3GaussianSampleA <- sqrt(3)*standardGaussianSample+1
+
+set.seed(0)
+mean1Var3GaussianSampleB <- rnorm(n,1,sqrt(3))
+all.equal(mean1Var3GaussianSampleA,mean1Var3GaussianSampleB)
+
+colors<-c("Population density"="red", "Sample kernel density"="blue",
+"Population mean"="green", "Sample mean"="violet")
+linetypes<-c("Population density"="solid", "Sample kernel density"="dashed",
+"Population mean"="solid", "Sample mean"="dashed")
+
+ggplot()+labs(x="x",y="Density")+theme_bw()+
+geom_line(data=(normal_densities_by_x%>%filter(var==3)),
+aes(x,y=density,color="Population density"))+
+# create plot of theoretical density
+geom_density(data=data.frame(x=mean1Var3GaussianSampleA),
+aes(x=x,color="Sample kernel density",
+linetype="Sample kernel density"))+
+# add in kernel density plot from real sample
+geom_vline(aes(xintercept=1,color="Population mean",
+linetype="Population mean"))+
+geom_vline(aes(xintercept=mean(mean1Var3GaussianSampleA),
+color="Sample mean",linetype="Sample mean"))+
+scale_color_manual(name = "Legend", values=colors)+
+scale_linetype_manual(name="Legend", values=linetypes)
+```
+# 4 The Binomial distribution and the central limit theorem
+Consider the case where n = 50 and p = 7/10. Use the dbinom() to generate a dataframe called binom_df with
+two columns - x and pmf. The first column contains the numbers {0, 1, . . . , 50} inclusive. The second column
+gives the corresponding value of the probability mass function pZ(x) = P(Z = x) with Z ∼ Binom(50, 7/10).
+Use the head() function to observe the first 3 rows as your data frame. The result should look as follows:
+
+```{r}
+n=50
+p=0.7
+x=seq(0,50,1)
+binom_df <- data.frame(x=x) %>% 
+  mutate(pmf=map_dbl(.x=x,~dbinom(x=.x,size=n,prob=p)))
+
+binom_df%>% head(3)
+```
+
+```{r}
+x<- seq(0,50,0.01)
+mu <- n*p
+sigma <- n*p*(1-p)
+
+norm_df <- data.frame(x=x) %>%
+  mutate(pdf=map_dbl(.x=x,~dnorm(x=.x,mu,sqrt(sigma))))
+
+norm_df %>% head(3)
+
 ```
 ```{r}
-
-```
-```{r}
-
-```
-```{r}
-
-```
-```{r}
-
-```
-```{r}
-
+colors<-c("Gaussian pdf"="red", "Binomial pmf"="blue")
+fill<-c("Gaussian pdf"="white", "Binomial pmf"="white")
+ggplot()+labs(x="x",y="Probability")+theme_bw()+
+geom_line(data=norm_df,
+aes(x,y=pdf,color="Gaussian pdf"),size=2)+
+# create plot of Gaussian density
+geom_col(data=binom_df,
+aes(x=x,y=pmf,color="Binomial pmf",fill="Binomial pmf"))+
+scale_color_manual(name = "", values=colors)+
+scale_fill_manual(name = "", values=fill)+
+xlim(c(20,50))
 ```
 ```{r}
 

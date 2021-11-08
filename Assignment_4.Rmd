@@ -7,7 +7,7 @@ library(tidyverse)
 ```
 install.package(latex)
 
-## 3 Sampling with replacement
+# 3 Sampling with replacement
 
 You can compute this number straightforwardly within R via the choose function choose( ). For example,
 if we want to compute the number of different subsets of size 3 from a collection of size 8 we would compute
@@ -148,7 +148,7 @@ theme_bw()+
 xlab("Number of reds")+
 ylab("Count")
 ```
-## 4 Sampling without replacement
+# 4 Sampling without replacement
 This question is more challenging. However, you should aim to complete at least the simulation component
 using ideas from the previous question.
 Let’s suppose we have large bag containing 100 spheres. There are 50 red spheres, 30 blue spheres and 20

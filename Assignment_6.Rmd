@@ -1,0 +1,53 @@
+---
+title: "Assignment_6"
+output: html_document
+---
+# 1 A Gaussian model for Red tailed hawks
+```{r echo=F}
+library(Stat2Data)
+data("Hawks")
+```
+
+```{r}
+RedTailedDf <- Hawks %>%
+  filter(Species==c("RT")) %>%
+  select("Weight","Tail","Wing")
+RedTailedDf
+```
+
+```{r}
+hawks_tails<-RedTailedDf%>%
+  pull(Tail)
+
+n <- length(hawks_tails)
+mu_mle_hawks <- mean(hawks_tails,na.rm=1)
+sigma_mle_hawks <- sd(hawks_tails,na.rm=1)*sqrt((n-1)/n)
+```
+
+```{r}
+tails <- seq(mu_mle_hawks-3*sigma_mle_hawks,mu_mle_hawks+3*sigma_mle_hawks,sigma_mle_hawks*0.001)
+colors <- c("MLE density"="red","Kernel density"="blue")
+ggplot()+
+  geom_line(data=data.frame(Tails=tails,Density=dnorm(tails,mean=mu_mle_hawks,sd=sigma_mle_hawks)),aes(x=Tails,y=Density,color="MLE density"))+
+  geom_density(data=tibble(hawks_tails),aes(x=hawks_tails,color="Kernel density"))+
+  labs(y="Density function",color="Estimator")+
+  theme_bw()+
+  scale_color_manual(values=colors)
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
