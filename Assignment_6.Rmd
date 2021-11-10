@@ -5,6 +5,7 @@ output: html_document
 # 1 A Gaussian model for Red tailed hawks
 ```{r echo=F}
 library(Stat2Data)
+library(tidyverse)
 data("Hawks")
 ```
 
@@ -35,12 +36,87 @@ ggplot()+
   scale_color_manual(values=colors)
 ```
 
+# 2 Location estimators with Gaussian data
 
 ```{r}
+set.seed(0)
+num_trials_per_sample_size<-100
+min_sample_size<-5
+max_sample_size<-500
+sample_size_inc<-5
+mu_0<-1
+sigma_0<-3
+
+simulation_df<-crossing(trial=seq(num_trials_per_sample_size),
+                        sample_size=seq(min_sample_size,
+                                        max_sample_size,sample_size_inc)) %>%
+  
+# create data frame of all pairs of sample_size and trial
+  mutate(simulation=pmap(.l=list(trial,sample_size),
+                       .f=~rnorm(.y,mean=mu_0,sd=sigma_0))) %>%
+  
+# simulate sequences of Gaussian random variables
+  mutate(sample_md=map_dbl(.x=simulation,.f=median)) %>%
+  mutate(sample_mu=map_dbl(.x=simulation,.f=mean)) %>%
+  
+# compute the sample medians
+  group_by(sample_size) %>% 
+    summarise(Median=mean((sample_md-mu_0)^2),Mean=mean((sample_mu-mu_0)^2))
+
+simulation_df %>%
+  pivot_longer(cols=c(Median,Mean),names_to="Estimator",values_to="msq_error") %>%
+  ggplot()+
+  geom_smooth(aes(x=sample_size,y=msq_error,color=Estimator,linetype=Estimator))+
+  labs(x="Sample size",y="Mean square error")+
+  theme_bw()
+  #xlim(20,500)
+  # ylim(0,0.35)
+
 ```
 
-
+# 3 Unbiased estimation of the population variance
 ```{r}
+set.seed(0)
+num_trials_per_sample_size<-100
+min_sample_size<-5
+max_sample_size<-1000
+sample_size_inc<-5
+mu_0<-1
+sigma_0<-3
+
+mle <- function(seq,mean){
+  sqrt((1/length(seq))*sum((seq-mean)^2))
+}
+
+u <- function(seq,mean){
+  sqrt((1/(length(seq)-1))*sum((seq-mean)^2))
+}
+
+
+simulation_df<-crossing(trial=seq(num_trials_per_sample_size),
+                        sample_size=seq(min_sample_size,
+                                        max_sample_size,sample_size_inc)) %>%
+  
+# create data frame of all pairs of sample_size and trial
+  mutate(simulation=pmap(.l=list(trial,sample_size),
+                       .f=~rnorm(.y,mean=mu_0,sd=sigma_0))) %>%
+  
+# simulate sequences of Gaussian random variables
+  mutate(sample_mu=map_dbl(.x=simulation,.f=mean))%>%
+  mutate(V_MLE=map2_dbl(.x=simulation,.y=sample_mu,.f=~mle(.x,.y))) %>%
+  mutate(V_U=map2_dbl(.x=simulation,.y=sample_mu,.f=~u(.x,.y))) %>%
+  pivot_longer(cols=c(V_MLE,V_U),names_to="Estimator",values_to="Variance")
+
+simulation_df %>%
+  ggplot()+
+  labs(x="sample size",y="Variance")+theme_bw()+
+  geom_point(aes(x=sample_size,y="Variance",color="Variance"),size=0.1)+
+  geom_hline(aes(yintercept=sigma_0,color="Sigma0"))+
+  facet_wrap(Variance)
+  #scale_x_sqrt()
+
+
+
 ```
 
 
