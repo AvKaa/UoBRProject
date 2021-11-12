@@ -70,7 +70,7 @@ four states: Louisiana, Montana, Mississippi and Kentucky.
 finance_data %>%
   filter(state==c("Louisiana","Montana","Mississippi","Kentucky")) %>% #filters out the four states
   ggplot()+
-  geom_smooth(aes(x=year,y=totals_revenue,color=state), se=F) + #create geom smooth plot
+  geom_smooth(aes(x=year,y=totals_revenue/1e+06,color=state), na.rm=T, se=F) + #create geom smooth plot
   theme_bw()+
   labs(y="Revenue (millions $)", x="Year")
 ```
@@ -160,9 +160,9 @@ idaho_2000_imputed %>%
 
 ```
 
+# Section B
 
-
-
+## B.1
 
 
 
