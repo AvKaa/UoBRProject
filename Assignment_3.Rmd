@@ -87,12 +87,9 @@ row_number(), map2_dbl(), mutate() as well as sometimes_missing().
 ```{r}
 
 df_xy_missing <- df_xy %>%
-<<<<<<< HEAD
   mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y))) %>%
   head(10)
-=======
-  mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y))) 
->>>>>>> 1ed6a7d2660bacfa4f750f9720c10b1e61863017
+
 ```
 
 Create a new data frame df_xy_imputed with two variables x and y. For the first variable x we have a
@@ -112,24 +109,13 @@ impute_by_median().
 
 ```{r}
 
-<<<<<<< HEAD
 df_xy_imputed <- df_xy_missing %>%
   mutate(y=map_dbl(.x=y,~impute_by_median(.x)))
 
 df_xy_imputed
 ```
 
-```{r}
-```
 
-```{r}
-```
-
-```{r}
-```
-
-```{r}
-```
 =======
 df_xy_impute <- df_xy_missing %>%
   mutate(y=map_dbl(.x=y,~impute_by_median(.x)))
