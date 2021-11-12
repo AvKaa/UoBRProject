@@ -170,8 +170,8 @@ the folder_path variable to be the directory which contains your copy of the spr
 
 ```{r}
 library(readxl) # load the readxl library
-folder_path<-"C:/Users/ov21312/OneDrive - University of Bristol/Documents/Rproject/UoBRProject/" # set this to the name of the
-# directory containing "HockeyLeague.xlsx"
+folder_path<-"C:/Users/ov21312/OneDrive - University of Bristol/Documents/Rproject/UoBRProject/" 
+# set this to the name of the directory containing "HockeyLeague.xlsx"
 file_name<-"HockeyLeague.xlsx" # set the file name
 file_path<-paste(folder_path,file_name,sep="") # create the file_path
 wins_data_frame<-read_excel(file_path,sheet="Wins") # read of a sheet from an xl file

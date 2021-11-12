@@ -1,0 +1,237 @@
+---
+title: "Summative Assessment"
+author: "Avekan"
+date: "12/11/2021"
+output: html_document
+---
+
+```{r include = FALSE}
+# Load required libraries
+# install.packages("plyr")
+library(tidyverse)
+library(stringr)
+```
+
+# Section A
+
+Data wrangling task with some finance data.
+
+## A.1
+Load finance data and create data frame "finance_data_original"
+```{r}
+finance_data_original <- read.csv("C:/Users/aveka/OneDrive/Documents/UoB/SCEM/UoBRProject/finance_data_EMATM0061.csv")
+dim(finance_data_original) 
+```
+The data frame consist of 1051 rows and 30 columns
+
+## A.2
+Generate subset data frame "finance_data"
+```{r}
+finance_data <- finance_data_original %>%
+  rename("education_expenditure"="Details.Education.Education.Total",
+         "health_expenditure"="Details.Health.Health.Total.Expenditure",
+         "transport_expenditure"="Details.Transportation.Highways.Highways.Total.Expenditure",
+         "totals_revenue"="Totals.Revenue",
+         "totals_expenditure"="Totals.Expenditure") %>%
+  select(state_year_code,education_expenditure,health_expenditure,transport_expenditure,totals_revenue,totals_expenditure)
+
+# Display subset of "finance_data" data frame consisting of the first five rows and first three columns
+finance_data %>% select(state_year_code,education_expenditure,health_expenditure) %>%
+  head(5) 
+```
+
+## A.3
+Create a new column within "finance_data" data frame called "totals_saving"
+```{r}
+finance_data <- finance_data %>%
+  mutate(totals_savings=totals_revenue-totals_expenditure)
+
+# Display subset of "finance_data" data frame consisting of the first three rows and the four columns
+finance_data %>% select(state_year_code,education_expenditure,health_expenditure,totals_savings) %>%
+  head(3)
+```
+
+## A.4
+Divide the “state_year_code” column into two separate columns, a “state” column and a “year” column
+```{r}
+finance_data <- finance_data %>%
+  separate(state_year_code, into=c("state","year"), sep="__", convert=T) %>%
+  mutate(state=str_to_title(state))
+
+# Display subset of "finance_data" data frame consisting of the first three rows and the five columns
+finance_data %>% select(state,year,education_expenditure,health_expenditure,totals_savings) %>%
+  head(3)
+```
+
+## A.5
+Generate a plot which displays the total revenue (“total_revenue”) as function of the year (“year”) for the following
+four states: Louisiana, Montana, Mississippi and Kentucky.
+```{r}
+finance_data %>%
+  filter(state==c("Louisiana","Montana","Mississippi","Kentucky")) %>% #filters out the four states
+  ggplot()+
+  geom_smooth(aes(x=year,y=totals_revenue,color=state), se=F) + #create geom smooth plot
+  theme_bw()+
+  labs(y="Revenue (millions $)", x="Year")
+```
+
+## A.6
+Create a function called get_decade() which takes as input a number and rounds that number down to the
+nearest multiple of 10. For example, the numbers 20, 21, 22, . . . , 29 would all be mapped to the output 20.
+
+Use your get_decade() function to add a new column to the “finance_data” data frame called “decade”
+which should give the decade corresponding to the year column. For example, the decade of the years
+1990,1991,. . . ,1998,1999 is 1990.
+```{r}
+#Use modulus to extract rightmost digit and subtract from original year to floor year
+get_decade <- function(x){ 
+  return(x-x%%10)
+}
+
+finance_data <- finance_data %>%
+  mutate(decade=map_dbl(.x=year,.f=~get_decade(.x))) 
+
+finance_data %>%
+  group_by(state) %>%
+  filter(decade==c(2000)) %>% #Chooses the decade starting 2000
+  select(state, totals_savings) %>% 
+  summarise(across(where(is.numeric),~mean(.x,na.rm=T))) %>% #Calculate average savings across decade
+  rename("mean_savings_across_decade"=totals_savings) %>%
+  arrange(desc(mean_savings_across_decade)) %>% #Arrange in descending order
+  head(3)
+```
+Display of the top 3 total savings countries in descending order
+
+## A.7
+Next generate a summary data frame from the “finance_data” data frame called “alaska_summary” 
+```{r}
+finance_data
+
+alaska_summary <- finance_data %>%
+  group_by(decade) %>%
+  filter(decade==c(1990,2000,2010)) %>%
+  select(decade,education_expenditure,health_expenditure,transport_expenditure) %>%
+  summarise(across(ends_with(c("expenditure")), list(md=median,mn=mean), na.rm=T, .names="{substring(.col,1,2)}_{.fn}"))
+
+# Display of "alaska_summary" data frame
+alaska_summary
+```
+
+
+## A.8
+Create a function called impute_by_median which takes as input a vector numerical values, which may include
+some “NA”s, and replaces any missing values (“NA”s) with the median over the vector.
+```{r}
+impute_by_median <- function(x){
+  med<-median(x,na.rm=1) 
+  impute_f <- function(y){
+    if(is.na(y)){
+      return(med)
+    }else{
+      return(y)
+    }
+  }
+  return(map_dbl(x,impute_f))
+}
+```
+
+Generate a subset of your “finance_data” data frame called “idaho_2000” 
+```{r}
+idaho_2000 <- finance_data %>%
+  filter(decade==c(2000),state==c("Idaho")) %>%
+  select(-state,-decade)
+idaho_2000
+```
+
+Apply “impute_by_median” function to create a new data frame called “idaho_2000_imputed”
+```{r}
+idaho_2000_imputed <- idaho_2000 %>%
+  mutate(education_expenditure=impute_by_median(education_expenditure),
+         health_expenditure=impute_by_median(health_expenditure),
+         transport_expenditure=impute_by_median(transport_expenditure),
+         totals_revenue=impute_by_median(totals_revenue),
+         totals_expenditure=impute_by_median(totals_expenditure),
+         totals_savings=impute_by_median(totals_savings))
+
+# Display subset of "idaho_2000_imputed" data frame consisting of the first five rows and the four columns
+idaho_2000_imputed %>%
+  select(year,health_expenditure,education_expenditure,totals_savings) %>%
+  head(5)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
