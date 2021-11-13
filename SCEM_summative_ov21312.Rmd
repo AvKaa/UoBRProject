@@ -19,7 +19,7 @@ Data wrangling task with some finance data.
 ## A.1
 Load finance data and create data frame "finance_data_original"
 ```{r}
-finance_data_original <- read.csv("C:/Users/aveka/OneDrive/Documents/UoB/SCEM/UoBRProject/finance_data_EMATM0061.csv")
+finance_data_original <- read.csv("./finance_data_EMATM0061.csv",fill=1)
 dim(finance_data_original) 
 ```
 The data frame consist of 1051 rows and 30 columns
@@ -47,7 +47,7 @@ finance_data <- finance_data %>%
   mutate(totals_savings=totals_revenue-totals_expenditure)
 
 # Display subset of "finance_data" data frame consisting of the first three rows and the four columns
-finance_data %>% select(state_year_code,education_expenditure,health_expenditure,totals_savings) %>%
+finance_data %>% select(state_year_code, totals_revenue, totals_expenditure ,totals_savings) %>%
   head(3)
 ```
 
@@ -59,7 +59,7 @@ finance_data <- finance_data %>%
   mutate(state=str_to_title(state))
 
 # Display subset of "finance_data" data frame consisting of the first three rows and the five columns
-finance_data %>% select(state,year,education_expenditure,health_expenditure,totals_savings) %>%
+finance_data %>% select(state, year, totals_revenue, totals_expenditure, totals_savings) %>%
   head(3)
 ```
 
@@ -68,9 +68,9 @@ Generate a plot which displays the total revenue (“total_revenue”) as functi
 four states: Louisiana, Montana, Mississippi and Kentucky.
 ```{r}
 finance_data %>%
-  filter(state==c("Louisiana","Montana","Mississippi","Kentucky")) %>% #filters out the four states
-  ggplot()+
-  geom_smooth(aes(x=year,y=totals_revenue/1e+06,color=state), na.rm=T, se=F) + #create geom smooth plot
+  filter(state=="Louisiana"|state=="Montana"|state=="Mississippi"|state=="Kentucky") %>% #filters out the four states
+  ggplot(aes(x=year,y=totals_revenue/1e+06))+
+  geom_smooth(aes(color=state,linetype=state)) + #create geom smooth plot
   theme_bw()+
   labs(y="Revenue (millions $)", x="Year")
 ```
@@ -105,11 +105,9 @@ Display of the top 3 total savings countries in descending order
 ## A.7
 Next generate a summary data frame from the “finance_data” data frame called “alaska_summary” 
 ```{r}
-finance_data
-
 alaska_summary <- finance_data %>%
   group_by(decade) %>%
-  filter(decade==c(1990,2000,2010)) %>%
+  filter((decade=="1990"|decade=="2000"|decade=="2010")&state=="Alaska") %>%
   select(decade,education_expenditure,health_expenditure,transport_expenditure) %>%
   summarise(across(ends_with(c("expenditure")), list(md=median,mn=mean), na.rm=T, .names="{substring(.col,1,2)}_{.fn}"))
 
@@ -163,9 +161,73 @@ idaho_2000_imputed %>%
 # Section B
 
 ## B.1
+### (a)
+Write a function called c_prob_person_given_alarm which gives ϕ as a function of p0,p1 and q.
+```{r}
+c_prob_person_given_alarm <- function(p_0,p_1,q){
+  q*p_1/(p_1*q+p_0*(1-q))
+}
+```
 
+### (b)
+Consider a setting in which p0 = 0.05, p1 = 0.95 and q = 0.1. In this case, what is ϕ?
+```{r}
+p_0 = 0.05
+p_1 = 0.95
+q = 0.1
+c_prob_person_given_alarm(p_0,p_1,q)
+```
+### (c)
+```{r}
+q = seq(0.1,1,0.01)
 
+vary_q = data.frame(q) %>%
+  mutate(phi=map_dbl(.x=q,.f=~c_prob_person_given_alarm(p_0,p_1,.x))) %>%
+  ggplot(aes(x=q,y=phi)) +
+  geom_line()
+vary_q
+```
+## B.2
 
+```{r}
+set.seed(0)
+n=1000
+
+sample_X_0125 <- function(alpha,beta,gamma,n){
+  sample_X<-data.frame(U=runif(n))%>%
+  mutate(X=case_when(
+  (0<=U)&(U<alpha)~1,
+  (alpha<=U)&(U<(alpha+beta))~2,
+  ((alpha+beta)<=U)&(U<=(1-alpha-beta))~5,
+  ((alpha+beta+gamma)<=U)&(U<=(1))~0)) %>%
+  pull(X) %>%
+  replace_na(0)
+  return(sample_X) 
+}
+
+alpha = 0.1
+sample_X_0125(0.1,0.2,0.3,10000) %>%
+  sum(x)/10000
+
+var(x)
+```
+
+```{r}
+set.seed(0)
+num_trials_per_sample_size<-10000
+n <- 100
+alpha <- 0.1
+beta <- 0.2
+gamma <- 0.3
+
+simulation_df<-crossing(trial=seq(num_trials_per_sample_size),
+                        sample_size=n) %>%
+  
+  mutate(simulation=pmap(.l=list(trial,sample_size),
+                       .f=~sample_X_0125(alpha,beta,gamma,.y)))
+
+simulation_df
+```
 
 
 
