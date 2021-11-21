@@ -10,6 +10,7 @@ output: html_document
 # install.packages("plyr")
 library(tidyverse)
 library(stringr)
+library(tinytex)
 ```
 
 # Section A
@@ -162,7 +163,7 @@ idaho_2000_imputed %>%
 
 ## B.1
 ### (a)
-Write a function called c_prob_person_given_alarm which gives ϕ as a function of p0,p1 and q.
+Write a function called "c_prob_person_given_alarm" which gives ϕ as a function of p0,p1 and q.
 ```{r}
 c_prob_person_given_alarm <- function(p_0,p_1,q){
   q*p_1/(p_1*q+p_0*(1-q))
@@ -170,7 +171,7 @@ c_prob_person_given_alarm <- function(p_0,p_1,q){
 ```
 
 ### (b)
-Consider a setting in which p0 = 0.05, p1 = 0.95 and q = 0.1. In this case, what is ϕ?
+Compute ϕ via setting p0 = 0.05, p1 = 0.95 and q = 0.1. 
 ```{r}
 p_0 = 0.05
 p_1 = 0.95
@@ -187,59 +188,96 @@ vary_q = data.frame(q) %>%
   geom_line()
 vary_q
 ```
-## B.2
 
+## B.2
+### (a)
+
+X \Bigg\{0,1,2,5 
+
+
+
+### (f)
 ```{r}
 set.seed(0)
-n=1000
 
 sample_X_0125 <- function(alpha,beta,gamma,n){
   sample_X<-data.frame(U=runif(n))%>%
   mutate(X=case_when(
   (0<=U)&(U<alpha)~1,
   (alpha<=U)&(U<(alpha+beta))~2,
-  ((alpha+beta)<=U)&(U<=(1-alpha-beta))~5,
+  ((alpha+beta)<=U)&(U<=(alpha+beta+gamma))~5,
   ((alpha+beta+gamma)<=U)&(U<=(1))~0)) %>%
   pull(X) %>%
   replace_na(0)
-  return(sample_X) 
+  return(sample_X)
 }
 
 alpha = 0.1
-sample_X_0125(0.1,0.2,0.3,10000) %>%
-  sum(x)/10000
+beta = 0.2
+gamma = 0.3
 
-var(x)
+x <- sample_X_0125(alpha,beta,gamma,10000)
+X_bar <- mean(x)
+sample_variance <- var(x)
+X_bar
+sample_variance
 ```
 
+### (h)
 ```{r}
 set.seed(0)
-num_trials_per_sample_size<-10000
+
+num_trials <- 10000
 n <- 100
 alpha <- 0.1
 beta <- 0.2
 gamma <- 0.3
 
-simulation_df<-crossing(trial=seq(num_trials_per_sample_size),
-                        sample_size=n) %>%
-  
-  mutate(simulation=pmap(.l=list(trial,sample_size),
-                       .f=~sample_X_0125(alpha,beta,gamma,.y)))
-
-simulation_df
+simulation_df<-crossing(trial=seq(num_trials), sample_size=n) %>%
+  mutate(simulation=pmap(.l=list(trial,sample_size),.f=~sample_X_0125(alpha,beta,gamma,.y))) %>%
+  mutate(X_bar=as.numeric(map(.x=simulation,.f=~mean(.x)))) 
 ```
 
 
+### (i)
+Generate a histogram plot which displays the behavior of the sample mean within your simulation study.
+```{r}
+simulation_histogram <- simulation_df %>%
+  ggplot(aes(x = X_bar)) +
+  geom_histogram(binwidth = 0.02) +
+  geom_vline(xintercept = 2, color = "red") +
+  theme_bw() +
+  labs() 
+  
+simulation_histogram
+```
+
+### (j)
+Compute numerical value of expectation and variance from simulation study.
+```{r}
+X_bars <- simulation_df %>%
+  pull(X_bar)
+
+#numerical value of expectation from simulation study:
+mean(X_bars)
+#numerical value of variance from simulation study:
+var(X_bars)
+
+```
+
+### (k)
+```{r}
+
+```
 
 
+## B.3
 
+### (a)
+Give a formula for the the population mean and variance of an exponential random variable X with parameter λ.
+```{r}
 
-
-
-
-
-
-
+```
 
 
 

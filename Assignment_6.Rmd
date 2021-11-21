@@ -61,7 +61,7 @@ simulation_df<-crossing(trial=seq(num_trials_per_sample_size),
   
 # compute the sample medians
   group_by(sample_size) %>% 
-    summarise(Median=mean((sample_md-mu_0)^2),Mean=mean((sample_mu-mu_0)^2))
+    summarise(Median=median((sample_md-mu_0)^2),Mean=mean((sample_mu-mu_0)^2))
 
 simulation_df %>%
   pivot_longer(cols=c(Median,Mean),names_to="Estimator",values_to="msq_error") %>%
