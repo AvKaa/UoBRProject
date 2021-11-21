@@ -1,0 +1,351 @@
+---
+title: "Assignment_7"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(Stat2Data)
+data(Hawks)
+```
+
+# 1 Student’s t-confidence intervals
+
+Use your data wrangling skills to extract a vector consisting of the weights of all the Red-Tailed hawks from the
+“Hawks” data set, with any missing values removed.
+```{r}
+Red_Tailed <- Hawks %>%
+  filter(Species=="RT") %>%
+  pull(Weight) 
+  
+Red_Tailed <- Red_Tailed[!is.na(Red_Tailed)]
+
+alpha<-0.05
+sample_size<-length(Red_Tailed)
+sample_mean<-mean(Red_Tailed)
+sample_sd<-sd(Red_Tailed)
+t<-qt(1-alpha/2,df=sample_size-1)
+confidence_interval_l<-sample_mean-t*sample_sd/sqrt(sample_size)
+confidence_interval_u<-sample_mean+t*sample_sd/sqrt(sample_size)
+confidence_interval<-c(confidence_interval_l,confidence_interval_u)
+confidence_interval
+
+```
+Now use the Student’s t method to compute 99%-level confidence intervals for the population mean of the
+weights for the red tailed hawks. Note that opting for confidence intervals with a confidence level of 99%, rather
+than a confidence level of 95%, requires a modified value of α.
+```{r}
+alpha <- 0.01
+n <- length(Red_Tailed)
+t <- qt(1-alpha/2,df=n-1)
+l <- mean(Red_Tailed)-t/sqrt(n)*sd(Red_Tailed)
+u <- mean(Red_Tailed)+t/sqrt(n)*sd(Red_Tailed)
+c(l,u)
+```
+What assumptions are made to derive confidence intervals based on Student’s t-distribution? Check if these
+assumptions are justified using a kernel density plot with the geom_density() function and using a QQ-plot with
+the stat_qq() function.
+```{r}
+# Assumptions are made that the data is apporximately Gaussian
+
+ggplot(data=filter(Hawks,Species=="RT"),aes(x=Weight)) +
+  geom_density() +
+  theme_bw()
+
+ggplot(data=filter(Hawks,Species=="RT"),aes(sample=Weight, na.rm=T)) +
+  stat_qq() +
+  stat_qq_line(color="blue")
+  theme_bw()
+```
+
+# 2 One sample t-test
+
+Begin by loading the “Palmer penguins” library. 
+```{r}
+library(palmerpenguins)
+```
+
+Next extract a vector called “bill_adelie” consisting of the bill
+lengths of the Adelie penguins belonging to the Adelie species.
+```{r}
+bill_adelie <- penguins %>%
+  filter(species=="Adelie") %>%
+  pull(bill_length_mm) 
+
+bill_adelie <- bill_adelie[!is.na(bill_adelie)]
+```
+```{r}
+alpha <- 0.01
+mu <- 40
+t.test(x=bill_adelie,mu=mu)
+
+# The p-value =1.114e-07 is below the significance level alpha = 0.01
+# Reject null hypothesis H_0:mu=40 and conclude that H_1: mu != 40
+```
+# 3 Implementing a one-sample t-test
+Implement a function carries out a two sided one-sample t-test. Your sample should take in two arguments 1)
+a vector x corresponding to a sample X1, · · · , Xn ∼ N (µ, σ2) and a 2) the value µ0 corresponding to a null
+hypothesis of µ = µ0. The output of your function should be the corresponding p-value of the test.
+
+```{r}
+t_test <- function(x,mu_0){
+  sample_size <- length(x)
+  sample_mean <- mean(x)  
+  sample_sd <- sd(x)
+  test_statistic <- (sample_mean-mu_0)/(sample_sd/sqrt(sample_size))
+  p_value <- 2*(1-pt(abs(test_statistic),df=sample_size-1))
+  return(p_value)
+}
+
+t_test(bill_adelie,mu)
+```
+# 4 The paired t-test
+
+```{r}
+install.packages("proxy")
+library(proxy)
+library(PairedData)
+data("Barley")
+```
+
+Carry out a paired t-test to determine whether there is a difference in average yield between the two types of
+barley. Use a significance level of 0.01. You can use the t.test() function.
+Compute the effect size using Cohen’s d statistic.
+What assumptions are required for the one-sample t test? Are these assumptions justified in this case?
+
+```{r}
+mu <- 0.01
+diff <- Barley %>%
+  mutate(diff=Glabron-Velvet) %>%
+  pull(diff)
+diff
+t.test(x=diff,mu=mu)
+```
+Compute the effect size using Cohen’s d statistic.
+```{r}
+y_bar <- mean(diff)
+s <- sd(diff)
+effect_size <- y_bar/s
+effect_size
+```
+
+What assumptions are required for the one-sample t test? Are these assumptions justified in this case?
+```{r}
+Barley <- Barley %>%
+  mutate(diff=Glabron-Velvet)
+
+ggplot(data=Barley,aes(x=diff)) +
+  geom_density() +
+  theme_bw()
+
+ggplot(data=Barley,aes(sample=diff, na.rm=T)) +
+  stat_qq() +
+  stat_qq_line(color="blue")
+  theme_bw()
+```
+
+# 5 Investigating coverage for Student’s t intervals
+
+```{r}
+student_t_confidence_interval<-function(sample,confidence_level){
+  sample<-sample[!is.na(sample)] # remove any missing values
+  n<-length(sample) # compute sample size
+  mu_est<-mean(sample) # compute sample mean
+  sig_est<-sd(sample) # compute sample sd
+  alpha = 1-confidence_level # alpha from gamma
+  t<-qt(1-alpha/2,df=n-1) # get student t quantile
+  l=mu_est-(t/sqrt(n))*sig_est # lower
+  u=mu_est+(t/sqrt(n))*sig_est # upper
+  return(c(l,u))
+}
+```
+
+```{r}
+num_trials<-100000
+sample_size<-30
+mu_0<-1
+sigma_0<-3
+alpha<-0.05
+set.seed(0) # set random seed for reproducibility
+single_alpha_coverage_simulation_df<-data.frame(trial=seq(num_trials))%>%
+  mutate(sample=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0)))%>%
+# generate random Gaussian samples
+  mutate(ci_interval=map(.x=sample,.f=~student_t_confidence_interval(.x,1-alpha)))%>%
+# generate confidence intervals
+  mutate(cover=map_lgl(.x=ci_interval,.f=~((min(.x)<=mu_0)&(max(.x)>=mu_0))))%>%
+# check if interval covers mu_0
+  mutate(ci_length=map_dbl(.x=ci_interval,.f=~(max(.x)-min(.x))))
+# compute interval length
+single_alpha_coverage_simulation_df %>%
+  pull(cover) %>%
+  mean() # estimate of coverage probability
+
+```
+
+```{r}
+alpha<-seq(0.025,0.2,0.025)
+
+range <- function(alpha){
+num_trials<-1000
+sample_size<-30
+mu_0<-1
+sigma_0<-3
+set.seed(0) # set random seed for reproducibility
+single_alpha_coverage_simulation_df<-data.frame(trial=seq(num_trials))%>%
+  mutate(sample=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0)))%>%
+# generate random Gaussian samples
+  mutate(ci_interval=map(.x=sample,.f=~student_t_confidence_interval(.x,1-alpha))) %>%
+# generate confidence intervals
+  mutate(cover=map_lgl(.x=ci_interval,.f=~((min(.x)<=mu_0)&(max(.x)>=mu_0))))%>%
+# check if interval covers mu_0
+  mutate(ci_length=map_dbl(.x=ci_interval,.f=~(max(.x)-min(.x))))
+# compute interval length
+cover<- single_alpha_coverage_simulation_df %>%
+  pull(cover) %>%
+  mean() # estimate of coverage probability
+length<- single_alpha_coverage_simulation_df %>%
+  pull(ci_length) %>%
+  mean() # estimate of length probability
+l <-list[cover,length]
+return(l)
+}
+
+```
+
+```{r}
+z <- outcome=map_dbl(.x=alpha,.f=~range(.x))
+data.frame(alpha) %>%
+  mutate(outcome=map_dbl(.x=alpha,.f=~range(.x))) %>%
+  ggplot(aes(x=1-alpha,y=outcome)) +
+  geom_line() +
+  xlab("gamma") +
+  theme_bw()
+
+```
+
+
+```{r}
+alpha<-seq(0,1,0.1)
+
+ci_length <- function(alpha){
+num_trials<-10
+sample_size<-30
+mu_0<-1
+sigma_0<-3
+set.seed(0) # set random seed for reproducibility
+single_alpha_coverage_simulation_df<-data.frame(trial=seq(num_trials))%>%
+  mutate(sample=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0)))%>%
+# generate random Gaussian samples
+  mutate(ci_interval=map(.x=sample,.f=~student_t_confidence_interval(.x,1-alpha))) %>%
+# generate confidence intervals
+  mutate(cover=map_lgl(.x=ci_interval,.f=~((min(.x)<=mu_0)&(max(.x)>=mu_0))))%>%
+# check if interval covers mu_0
+  mutate(ci_length=map_dbl(.x=ci_interval,.f=~(max(.x)-min(.x))))
+# compute interval length
+outcome<- single_alpha_coverage_simulation_df %>%
+  pull(ci_length) %>%
+  mean() # estimate of coverage probability
+return(outcome)
+}
+
+```
+
+```{r}
+b <- map_dbl(.x=alpha,.f=~ci_length(.x))
+b
+con_len <- data.frame(alpha) %>%
+  mutate(outcome=b) %>%
+  ggplot(aes(x=1-alpha,y=outcome)) +
+  geom_line() +
+  xlab("gamma") +
+  theme_bw()
+con_len
+```
+
+
+# 6 (Optional) Wilson’s confidence interval for proportions
+
+The following code uses Wilson’s method to compute 99%-level confidence intervals for the pass rate of a driving
+test.
+
+```{r}
+library(PropCIs)
+driving_test_results<-c(1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1,0,0,1,0)
+alpha<-0.01 # failure probability
+num_successes<- sum(driving_test_results) # total passes
+sample_size<-length(driving_test_results)
+scoreci(x=num_successes, n=sample_size, conf.level=1-alpha)
+# compute Wilson's confidence intervals
+
+```
+Use Wilson’s method to compute a 95%-level confidence interval for the proportion of red-tailed hawks who weigh
+more than a kilogram.
+
+```{r}
+Red_tailed <- Hawks %>%
+  filter(Species=="RT") %>%
+  select("Weight")
+sample_size <- nrow(Red_tailed)
+num_successes <- nrow(filter(Red_tailed, Weight>=1000))
+alpha <- 0.05
+scoreci(x=num_successes,n=sample_size,conf.level = 1-alpha)
+
+```
+
+# 7 (Optional) The Binomial test
+The “Airlines” data set contains arrival records for LaGuardia and O’Haire airport. We can load the “Airlines”
+test as follows:
+
+```{r}
+library(Stat2Data)
+data("Airlines")
+```
+Extract a subset of the data set corresponding to arrivals of flights with the Delta airline at the O’Hare airport.
+
+```{r}
+Airlines
+?binom.test
+sample_size<-nrow(Airlines)
+sample_size
+num_successes<-nrow(filter(Airlines,OnTime=="yes"))
+binom.test(x=num_successes,n=sample_size,p=0.875,alternative="two.sided")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
