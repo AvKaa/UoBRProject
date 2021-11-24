@@ -1,0 +1,175 @@
+---
+title: "Assignment_8"
+output: html_document
+---
+```{r echo=FALSE}
+library(tidyverse)
+```
+
+# 1 Obstacles to valid scientific inference
+1. Measurement error -  difference between the measured value of a quantity and its true value. Eg, rounding errors dude to computational constraints.
+
+2. Selection bias - when the data included in the analysis is mis-representing the underlying population of interest. Different forms of selection bias are not mutally exclusive.
+
+3. Confounding variables - when a third variable (the confounding variable) has a causal effect upon two variables.
+
+# 2 An unpaired t test
+
+```{r}
+library(palmerpenguins)
+peng_AC<-penguins%>%
+drop_na(species,body_mass_g)%>%
+filter(species!="Gentoo")
+peng_AC 
+cat <- unique(peng_AC$species)
+cat[1]
+```
+
+```{r}
+
+t_test_function <- function(data,val_col,group_col){
+  cat <- data%>%pull(group_col)
+  categories <- unique(cat) 
+  mean_0 <- data%>%filter(!!as.symbol(group_col)==categories[1])%>%pull(val_col)%>%mean()
+  mean_1 <- data%>%filter(!!as.symbol(group_col)==categories[2])%>%pull(val_col)%>%mean()
+  sd_0 <- data%>%filter(!!as.symbol(group_col)==categories[1])%>%pull(val_col)%>%sd()
+  sd_1 <- data%>%filter(!!as.symbol(group_col)==categories[2])%>%pull(val_col)%>%sd()
+  n_0 <- data%>%filter(!!as.symbol(group_col)==categories[1])%>%nrow()
+  n_1 <- data%>%filter(!!as.symbol(group_col)==categories[2])%>%nrow()
+
+  sd_combined <- sqrt(((n_0-1)*sd_0^2+(n_1-1)*sd_1^2)/(n_0+n_1-2))
+  t_statistic <- (mean_0-mean_1)/(sd_combined*sqrt(1/n_0+1/n_1))
+  
+  p_value <-2*(1-pt(abs(t_statistic),df=n_0+n_1-2))
+  dof=n_0+n_1-2
+  output <- data.frame(t_statistic,dof,p_value)
+  return(output)
+}
+
+t_test_function(data=peng_AC,val_col="body_mass_g",group_col="species")
+
+```
+```{r}
+t_test_function <- function(data,val_col,group_col,var_equal){
+  cat <- data%>%pull(group_col)
+  categories <- unique(cat) 
+  mean_0 <- data%>%filter(!!as.symbol(group_col)==categories[1])%>%pull(val_col)%>%mean()
+  mean_1 <- data%>%filter(!!as.symbol(group_col)==categories[2])%>%pull(val_col)%>%mean()
+  sd_0 <- data%>%filter(!!as.symbol(group_col)==categories[1])%>%pull(val_col)%>%sd()
+  sd_1 <- data%>%filter(!!as.symbol(group_col)==categories[2])%>%pull(val_col)%>%sd()
+  n_0 <- data%>%filter(!!as.symbol(group_col)==categories[1])%>%nrow()
+  n_1 <- data%>%filter(!!as.symbol(group_col)==categories[2])%>%nrow()
+  
+  if (var_equal==TRUE){
+    sd_combined <- sqrt(((n_0-1)*sd_0^2+(n_1-1)*sd_1^2)/(n_0+n_1-2))
+    t_statistic <- (mean_0-mean_1)/(sd_combined*sqrt(1/n_0+1/n_1))
+    dof=n_0+n_1-2
+    p_value <-2*(1-pt(abs(t_statistic),df=dof))
+    
+  } else{
+    
+    t_statistic<-(mean_0-mean_1)/sqrt((sd_0^2/n_0)+(sd_1^2/n_1))
+    dof <- (sd_0^2/n_0+sd_1^2/n_1)^2/((sd_0^2/n_0)^2/(n_0-1)+(sd_1^2/n_1)^2/(n_1-1))
+    p_value <-2*(1-pt(abs(t_statistic),df=dof))
+                                
+  }
+  output <- data.frame(t_statistic,dof,p_value)
+  return(output)
+}
+
+t_test_function(data=peng_AC,val_col="body_mass_g",group_col="species",var_equal=FALSE)
+t.test(body_mass_g~species,data=peng_AC,var.equal=FALSE)
+```
+
+# 4 Investigating test size for an unpaired Student’s t-test
+
+```{r}
+num_trials<-1000
+sample_size<-30
+mu_0<-1
+mu_1<-1
+sigma_0<-3
+sigma_1<-3
+# alpha<-0.05
+alpha<-seq(0,1,0.01)
+set.seed(0) # set random seed for reproducibility
+
+compute_type_1_error <- function(alpha){
+  single_alpha_test_size_simulation_df<-data.frame(trial=seq(num_trials))%>%
+    mutate(sample_0=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0)),
+           sample_1=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_1,sd=sigma_1))) %>%
+  # generate random Gaussian samples
+    mutate(p_value=pmap(.l=list(trial,sample_0,sample_1),
+                      .f=~t.test(..2,..3,var.equal = TRUE)$p.value)) %>%
+  # generate p values
+    mutate(type_1_error=p_value<alpha)
+  
+  t1e <- single_alpha_test_size_simulation_df%>%
+    pull(type_1_error)%>%
+    mean() # estimate of coverage probability
+  
+  return(t1e)
+}
+
+t1e <- map_dbl(.x=alpha,.f=~varying_alpha(.x))
+alpha_t1e <- data.frame(alpha,t1e)%>%
+  ggplot(aes(x=alpha,y=t1e))+
+  geom_line()
+alpha_t1e
+```
+
+# 5 The power of an unpaired t-test
+
+```{r}
+num_trials<-10000
+n_0<-30
+n_1<-30
+mu_0<-3
+mu_1<-4
+sigma_0<-2
+sigma_1<-2
+alpha<-0.05
+set.seed(0) # set random seed for reproducibility
+data.frame(trial=seq(num_trials))%>%
+mutate(sample_0=map(.x=trial,.f=~rnorm(n=n_0,mean=mu_0,sd=sigma_0)),
+sample_1=map(.x=trial,.f=~rnorm(n=n_1,mean=mu_1,sd=sigma_1)))%>%
+# generate random Gaussian samples
+mutate(p_value=pmap(.l=list(trial,sample_0,sample_1),
+.f=~t.test(..2,..3,var.equal = TRUE)$p.value))%>%
+# generate p values
+mutate(reject_null=p_value<alpha)%>%
+pull(reject_null)%>%
+mean() # estimate of coverage probability
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
