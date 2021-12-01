@@ -1,0 +1,212 @@
+---
+title: "SCEM_Summative_Section_C_ov21312"
+author: "Avekan"
+date: "30/11/2021"
+output: html_document
+---
+
+# Basic Set up{.tabset .tabset-fade .tabset-pills}
+
+## Load Packages
+
+```{r  echo=FALSE}
+install.packages("tidyverse", "skimr", "GGally", "plotly", "caret", "randomForest")
+
+```
+```{r}
+library
+
+library(skimr, GGally, plotly, caret, randomForest)
+```
+
+
+
+## Load Dataset
+
+```{r  message=FALSE, warning=FALSE}
+
+wine <- read_csv("./winequality-red.csv")
+
+```
+
+
+<!-- # EDA{.tabset .tabset-fade .tabset-pills} -->
+
+
+
+<!-- ## First Glimpse via skim -->
+
+<!-- ```{r  message=FALSE, warning=FALSE} -->
+
+<!-- wine %>% skim() %>% kable() -->
+
+<!-- ``` -->
+
+<!-- ## Second Glimpse via Corrplot -->
+
+<!-- ```{r  message=FALSE, warning=FALSE} -->
+
+<!-- wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', number.cex = .8) -->
+
+<!-- ``` -->
+
+
+<!-- ## Third Glimpse via Corrgram -->
+
+<!-- ```{r  message=FALSE, warning=FALSE} -->
+
+<!-- wine %>% corrgram(lower.panel=panel.shade, upper.panel=panel.ellipse) -->
+
+<!-- ``` -->
+
+
+
+
+
+<!-- # Preprocess -->
+
+<!-- **Correct column names** and **Turn quality variable into factor** -->
+
+<!-- ```{r  message=FALSE, warning=FALSE} -->
+
+<!-- colnames(wine) <- wine %>% colnames() %>% str_replace_all(" ","_") -->
+
+<!-- wine$quality <- as.factor(wine$quality) -->
+
+<!-- ``` -->
+
+
+<!-- # GGally - ggpairs -->
+
+<!-- I have had a quick look and found the following variables: residual\_sugar, free\_sulfur\_dioxide, total\_sulfur\_dioxide, and chlorides do not have significant different across different quality.  -->
+
+<!-- Therefore, these variables are not included in the ggpairs model. Further, I found volatile_acidity, sulphates, and alcohol have more significate different across different quality based on the graph below.  -->
+
+<!-- The rest of the variables are showing some difference; however, the difference among different quality is not significant enough to determine all the quality directly by using one variable.  -->
+
+<!-- In the following EDA, I leverage the power of plotly to produce a 3D interactive graph to visually see different quality at different alcohol, volatile acidity, and sulphates levels.  -->
+
+<!-- I am expecting that we will see the trend to some extent but should not be able to directly identify the quality by using the graph. -->
+
+
+<!-- ```{r  message=FALSE, warning=FALSE} -->
+
+<!-- wine %>%  -->
+
+<!--   mutate(quality = as.factor(quality)) %>%  -->
+
+<!--   select(-c(residual_sugar, free_sulfur_dioxide, total_sulfur_dioxide, chlorides)) %>%  -->
+
+<!--   ggpairs(aes(color = quality, alpha=0.4), -->
+
+<!--           columns=1:7, -->
+
+<!--           lower=list(continuous="points"), -->
+
+<!--           upper=list(continuous="blank"), -->
+
+<!--           axisLabels="none", switch="both") -->
+
+<!-- ``` -->
+
+<!-- ## Plotly 2D Interactive Graph -->
+
+<!-- ```{r message=FALSE, warning=FALSE, echo=FALSE} -->
+
+<!-- plot_ly(wine, x=~alcohol, y=~volatile_acidity, size = ~sulphates, -->
+
+<!--        type="scatter",mode="markers", color = ~quality, text=~quality) -->
+
+<!-- ``` -->
+
+<!-- # Ployly 3D Interactive Graph -->
+
+<!-- ```{r  message=FALSE, warning=FALSE} -->
+
+<!-- wine %>%  -->
+
+<!--   plot_ly(x=~alcohol,y=~volatile_acidity,z= ~sulphates, color=~quality, hoverinfo = 'text', colors = viridis(3), -->
+
+<!--           text = ~paste('Quality:', quality, -->
+
+<!--                         '<br>Alcohol:', alcohol, -->
+
+<!--                         '<br>Volatile Acidity:', volatile_acidity, -->
+
+<!--                         '<br>sulphates:', sulphates)) %>%  -->
+
+<!--   add_markers(opacity = 0.8) %>% -->
+
+<!--   layout(title = "3D Wine Quality", -->
+
+<!--          annotations=list(yref='paper',xref="paper",y=1.05,x=1.1, text="quality",showarrow=F), -->
+
+<!--          scene = list(xaxis = list(title = 'Alcohol'), -->
+
+<!--                       yaxis = list(title = 'Volatile Acidity'), -->
+
+<!--                       zaxis = list(title = 'sulphates'))) -->
+
+<!-- ``` -->
+
+
+# Cross Validation Setup
+
+```{r  message=FALSE, warning=FALSE}
+
+set.seed(1)
+
+inTrain <- createDataPartition(wine$quality, p=.9, list = F)
+
+
+
+train <- wine[inTrain,]
+
+valid <- wine[-inTrain,]
+
+rm(inTrain)
+
+```
+
+
+# Random Forest
+
+```{r  message=FALSE, warning=FALSE}
+
+# randomforest
+
+set.seed(1)
+
+rf_model <- randomForest(quality~alcohol+volatile_acidity+citric_acid+
+
+                           density+pH+sulphates,train)
+
+rf_result <- predict(rf_model, newdata = valid[,!colnames(valid) %in% c("quality")])
+
+
+
+confusionMatrix(rf_result, valid$quality)
+
+```
+
+
+
+
+
+After reviewing the result, let's look at which variable contributes the most.
+
+
+
+
+
+```{r  message=FALSE, warning=FALSE}
+
+varImp(rf_model) %>% kable()
+
+varImpPlot(rf_model)
+
+rm(rf_model, rf_result)
+
+```
+
+
