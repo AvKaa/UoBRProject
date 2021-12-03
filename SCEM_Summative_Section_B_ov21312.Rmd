@@ -54,7 +54,9 @@ x =\begin{cases}
 5 & \ i-(\alpha + \beta +\gamma)
 \end{cases} 
 $$
+
 ### (b)
+
 $$
 \begin{align}
 E[Y] &= 0 \cdot P(Y=0) +1 \cdot P(Y=1) +2 \cdot P(Y=2) +5 \cdot P(Y=5) \\
@@ -62,7 +64,9 @@ E[Y] &= 0 \cdot P(Y=0) +1 \cdot P(Y=1) +2 \cdot P(Y=2) +5 \cdot P(Y=5) \\
 &= 1 \cdot \alpha +2 \cdot \beta +5 \cdot \gamma \\
 \end{align}
 $$
+
 ### (c)
+
 $$
 \begin{align}
 Var[Y] &= 0^2 \cdot P(Y=0) +1^2 \cdot P(Y=1) +2^2 \cdot P(Y=2) +5^2 \cdot P(Y=5) -2^2\\
@@ -70,7 +74,9 @@ Var[Y] &= 0^2 \cdot P(Y=0) +1^2 \cdot P(Y=1) +2^2 \cdot P(Y=2) +5^2 \cdot P(Y=5)
 &=4.4
 \end{align}
 $$
+
 ### (d)
+
 $$
 \begin{align}
 E[\overline{X}]&=E\Bigg[\frac{1}{n} \sum_{i=1}^{n}X_{i}\Bigg]\\
@@ -79,7 +85,9 @@ E[\overline{X}]&=E\Bigg[\frac{1}{n} \sum_{i=1}^{n}X_{i}\Bigg]\\
 &=2
 \end{align}
 $$
+
 ### (e)
+
 $$
 \begin{align}
 Var(\overline{X}) &= Var\Bigg(\frac{1}{n} \sum_{i=1}^{n}X_{i}\Bigg)\\
