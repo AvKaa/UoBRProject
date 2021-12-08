@@ -1,0 +1,218 @@
+---
+title: "SCEM_Summative_Section_C_ov21312"
+author: "Avekan"
+date: "30/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Synopsis
+
+As the publisher of this dataset suggests; due to privacy and logistic issues, only physicochemical (inputs) and sensory (the output) variables are available (e.g. there is no data about grape types, wine brand, wine selling price, etc.).
+This specific dataset can be viewed as classification or a regression task. The classes are ordered and not balanced (e.g. there are much more normal wines than excellent or poor ones).
+As the publisher suggest, we will classify the wines by setting an arbitrary cutoff for our dependent variable (wine quality) at e.g. 7 or higher getting classified as 'good/1' and the remainder as 'not good/0'. For this specific kernel we will be doing some basic data explorations and will be doing classification utilizing a quick random forest as our baseline model. 
+
+#Let's have a peek of our dataset
+
+```{r, echo=FALSE}
+# #Libraries needed
+# install.packages("ggplot2")
+# install.packages("corrplot")
+# install.packages("dplyr")
+# install.packages("randomForest")
+```
+
+```{r}
+# library(ggplot2, ggthemes, corrplot, reshape2, dplyr, randomForest)
+library(ggplot2)
+library(corrplot)
+library(dplyr)
+library(randomForest)
+library(ranger)
+```
+
+```{r}
+#Load red wine dataset
+redwine<-read.csv("./winequality-red.csv")
+
+#summary statistics
+str(redwine)
+summary(redwine)
+```
+
+##Correlation of Variables
+
+```{r,message=FALSE,warning=FALSE}
+#Scatterplot Matrix of Variables
+plot(redwine)
+
+#Correlation Heatmap of Variables
+corrplot(cor(redwine))
+```
+
+We're trying to predict wine quality, so we care about the final 2 columns/rows in order to know which among the variables has the strongest relationship with wine quality. As the heatmap suggests, alcohol has the strongest correlation with wine quality.
+
+##Wine Quality
+
+```{r,message=FALSE,warning=FALSE}
+#Distribution of red wine quality ratings
+ggplot(redwine,aes(x=quality))+geom_bar(stat = "count",position = "dodge")+
+  scale_x_continuous(breaks = seq(3,8,1))+
+  ggtitle("Distribution of Red Wine Quality Ratings")+
+  theme_classic()
+```
+
+
+##Predictive Modelling (Binary Classification)
+
+As indicated in the synopsis, we would utilize a random forest as our baseline model in predicting the quality of a wine. We will not be using any hyper-parameter tuning and stick with the default of the randomForest function
+
+```{r}
+#Baseline Random Forest Model
+redwineRF<-randomForest(factor(quality)~.-quality,redwine,ntree=150)
+redwineRF
+```
+
+The overall accuracy of our model is pretty good at around 92% overall. However, we could clearly see that it is much better in predicting bad wines than good ones.
+
+###Variable Importance
+
+```{r,message=FALSE,warning=FALSE}
+# Get importance
+importance    <- randomForest::importance(redwineRF)
+
+varImportance <- data.frame(Variables = row.names(importance), 
+                            Importance = round(importance[ ,'MeanDecreaseGini'],2))
+
+# Create a rank variable based on importance
+rankImportance <- varImportance %>%
+  mutate(Rank = paste0('#',dense_rank(desc(Importance))))
+
+# Use ggplot2 to visualize the relative importance of variables
+ggplot(rankImportance, aes(x = reorder(Variables, Importance), 
+                           y = Importance, fill = Importance)) +
+  geom_bar(stat='identity') + 
+  geom_text(aes(x = Variables, y = 0.5, label = Rank),
+            hjust=0, vjust=0.55, size = 4, colour = 'red') +
+  labs(x = 'Variables') +
+  coord_flip() + 
+  theme_classic()
+```
+
+###Hyperparameter tuning
+```{r}
+# hyperparameter grid search
+hyper_grid <- expand.grid(
+  mtry       = seq(1, 10, by = 2),
+  node_size  = seq(3, 9, by = 2),
+  sampe_size = c(.55, .632, .70, .80),
+  acc   = 0
+)
+```
+
+
+
+```{r}
+redwine<-redwine%>%mutate(quality=as.factor(quality))
+
+for(i in 1:nrow(hyper_grid)) {
+  
+  # train model
+  model <- ranger(
+    formula         = quality~ ., 
+    data            = redwine, 
+    num.trees       = 500,
+    mtry            = hyper_grid$mtry[i],
+    min.node.size   = hyper_grid$node_size[i],
+    sample.fraction = hyper_grid$sampe_size[i],
+    seed            = 0
+  )
+  
+  # add OOB error to grid
+  # hyper_grid$acc[i] <- (model$confusion.matrix[1,1]+ model$confusion.matrix[2,2]+ model$confusion.matrix[3,3] +model$confusion.matrix[4,4]+ model$confusion.matrix[5,5]+ model$confusion.matrix[6,6]) /  sum(model$confusion.matrix)
+  hyper_grid$acc[i] <- sum(diag(6)*model$confusion.matrix) /  sum(model$confusion.matrix)
+}
+
+hyper_grid %>%
+  dplyr::arrange(desc(acc)) %>%
+  head(10)
+```
+
+
+```{r}
+#Load red wine dataset
+redwine<-read.csv("./winequality-red.csv")
+#Create a variable indicating if a wine is good or bad
+
+quality_2_class<-function(quality){
+  return(if(quality<5){
+    as.integer(0)
+  }else if(quality>6){
+    as.integer(2)
+  }else{
+    as.integer(1)
+  })
+}
+
+
+redwine$quality_wine<-map_dbl(.x=redwine$quality,.f=~quality_2_class(.x))
+  
+
+#Distribution of good/bad red wines
+ggplot(redwine,aes(x=quality_wine,fill=factor(quality_wine)))+geom_bar(stat = "count",position = "dodge")+
+  scale_x_continuous(breaks = seq(0,1,1))+
+  ggtitle("Distribution of Good/Bad Red Wines")+
+  theme_classic()
+redwine<-redwine%>%mutate(quality_wine=as.factor(quality_wine))
+typeof(redwine$quality_wine)
+```
+
+Above plot shows what we have inferred previously, that good wines were outnumbered by bad wines by a large margin. Most wines were mediocre (rated 5 or 6), but we could also see that there are some poor wines (3 or 4). A vast majority of good wines has a quality rating of 7.
+
+```{r}
+for(i in 1:nrow(hyper_grid)) {
+
+  # train model
+  model <- ranger(
+    formula         = quality_wine~ .,
+    data            = redwine,
+    num.trees       = 500,
+    mtry            = hyper_grid$mtry[i],
+    min.node.size   = hyper_grid$node_size[i],
+    sample.fraction = hyper_grid$sampe_size[i],
+    seed            = 0
+  )
+
+  # add OOB error to grid
+  # hyper_grid$acc[i] <- (model$confusion.matrix[1,1]+ model$confusion.matrix[2,2]+ model$confusion.matrix[3,3] +model$confusion.matrix[4,4]+ model$confusion.matrix[5,5]+ model$confusion.matrix[6,6]) /  sum(model$confusion.matrix)
+  hyper_grid$acc[i] <- sum(diag(3)*model$confusion.matrix) /  sum(model$confusion.matrix)
+}
+
+hyper_grid %>%
+  dplyr::arrange(desc(acc)) %>%
+  head(10)
+```
+
+```{r}
+# # Define the control
+# trControl <- trainControl(method = "repeatedcv",
+#     number = 10,
+#     search = "grid")
+# 
+# set.seed(0)
+# tuneGrid <- expand.grid(.mtry = c(1: 10), ntree=c(1:10))
+# rf_mtry <- train(quality~.,
+#     data = redwine,
+#     method = "rf",
+#     metric = "Accuracy",
+#     tuneGrid = tuneGrid,
+#     trControl = `trControl`)
+#     # importance = TRUE,
+#     # nodesize = 14,
+#     # ntree = 500)
+# print(rf_mtry)
+```
+

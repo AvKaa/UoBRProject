@@ -18,20 +18,18 @@ As the publisher suggest, we will classify the wines by setting an arbitrary cut
 #Let's have a peek of our dataset
 
 ```{r, echo=FALSE}
-# #Libraries needed
-# install.packages("ggplot2")
-# install.packages("corrplot")
-# install.packages("dplyr")
-# install.packages("randomForest")
+#Libraries needed
+install.packages("ggplot2")
+install.packages("corrplot")
+install.packages("dplyr")
+install.packages("randomForest")
 ```
 
 ```{r}
 # library(ggplot2, ggthemes, corrplot, reshape2, dplyr, randomForest)
-library(ggplot2)
+library(tidyverse)
 library(corrplot)
-library(dplyr)
 library(randomForest)
-<<<<<<< HEAD
 ```
 
 ```{r}
@@ -187,11 +185,11 @@ hyper_grid <- expand.grid(
   sampe_size = c(.55, .632, .70, .80),
   acc   = 0
 )
->>>>>>> b35572f75ba860ca093f9f6d91d22e3d24ea6a18
+```
 
 As indicated in the synopsis, we would utilize a random forest as our baseline model in predicting the quality of a wine. We will not be using any hyper-parameter tuning and stick with the default of the randomForest function
 
-<<<<<<< HEAD
+
 ```{r,message=FALSE,warning=FALSE}
 #Baseline Random Forest Model
 redwineRF<-randomForest(factor(quality_wine)~.-quality,redwine,ntree=150)
@@ -212,7 +210,7 @@ varImportance <- data.frame(Variables = row.names(importance),
 # Create a rank variable based on importance
 rankImportance <- varImportance %>%
   mutate(Rank = paste0('#',dense_rank(desc(Importance))))
-=======
+
 
 ```
 
@@ -260,7 +258,6 @@ rf_mtry <- train(quality~.,
     # ntree = 500)
 print(rf_mtry)
 ```
->>>>>>> b35572f75ba860ca093f9f6d91d22e3d24ea6a18
 
 # Use ggplot2 to visualize the relative importance of variables
 ggplot(rankImportance, aes(x = reorder(Variables, Importance), 
