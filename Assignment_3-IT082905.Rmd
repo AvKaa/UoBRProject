@@ -1,0 +1,256 @@
+---
+title: "Assignment_3"
+output: html_document
+---
+```{r}
+library(tidyverse)
+```
+# 2 Tidy data and iteration
+
+## 2.1 Missing data and iteration
+```{r}
+impute_by_median <- function(x){
+  med<-median(x,na.rm=1) 
+  impute_f <- function(y){
+    if(is.na(y)){
+      return(med)
+    }else{
+      return(y)
+    }
+  }
+  return(map_dbl(x,impute_f))
+}
+v<-c(1,2,NA,4)
+impute_by_median(v)
+```
+
+Next generate a data frame with two variables x and y. For our first variable x we have a sequence
+(x1, x2, . . . , xn) where x1 = 0, xn = 10 and for each i = 1, . . . , n − 1, xi+1 = xi + 0.1. For our second
+variable y we set yi = 5 × xi + 1 for i = 1, . . . , n. Generate data of this form and place within a data frame
+called df_xy.
+
+```{r}
+x <- seq(0,10,0.1)
+y<-5*x+1
+df_xy <- data.frame(x,y)
+df_xy %>% head(5)
+```
+
+The map2() function is similar to the map() function but iterates over two variables in parallel rather
+than one. You can learn more here https://purrr.tidyverse.org/reference/map2.html. The following simple
+example shows you how map2_dbl() can be combined with the mutate() function.
+
+```{r}
+df_xy%>%
+mutate(z=map2_dbl(x,y,~.x+.y))%>%
+head(5)
+```
+
+First create a function sometimes_missing with two variables index and value. The function should return
+NA if index is divisible by 5 and returns value otherwise.
+
+```{r}
+sometimes_missing <- function(index,value){
+  if (index%%5 == 0){
+    return(NA)
+    }
+  else{
+    return(value)
+    }
+}
+sometimes_missing(14,25)
+sometimes_missing(15,25)
+```
+
+Next generate a new data frame called df_xy_missing with two variables x and y, but some missing data.
+For the first variable x we have a sequence (x1, · · · , xn), which is precisely the same as with df_xy. For
+the second variable y we have a sequence (˜y1, · · · , y˜n) where y˜i = NA if i is divisible by 5 and y˜i = yi for
+i not divisible by 5. To generate the dataframe d_xy_missing you may want to make use of the functions
+row_number(), map2_dbl(), mutate() as well as sometimes_missing().
+
+```{r}
+
+df_xy_missing <- df_xy %>%
+  mutate(y=map2_dbl(.x=row_number(),.y=y,~sometimes_missing(.x,.y)))
+df_xy_missing
+```
+
+Create a new data frame df_xy_imputed with two variables x and y. For the first variable x we have a
+sequence (x1, · · · , xn), which is precisely the same as with df_xy. For the second variable y we have a
+sequence (y
+′
+1
+, · · · , y′
+n
+) which is formed from (˜y1, · · · , y˜n) by imputing any missing values with the median.
+To generate df_xy_imputed from “‘df_xy_missing by applying a combination of the functions mutate and
+impute_by_median().
+
+```{r}
+df_xy_imputed <- df_xy_missing %>%
+  mutate(y=impute_by_median(y))
+df_xy_imputed
+```
+
+Combine the dataframes df_xy, df_xy_missing and df_xy_impute within a single dataframe called
+df_combined, along with an additional column indicating the source of the data.
+
+```{r}
+nrow(df_xy_missing)
+nrow(df_xy_imputed)
+df_xy<-df_xy%>%
+mutate(source="original")
+df_xy_missing<-df_xy_missing%>%
+mutate(source="corrupted")
+df_xy_imputed<-df_xy_imputed%>%
+mutate(source="imputed")
+df_combined<-rbind(df_xy,df_xy_missing,df_xy_imputed)
+df_combined
+```
+
+Plot the original data, the corrupted data and the imputed data together together with a trend line for each
+sample.
+
+```{r}
+ggplot(df_combined,aes(x=x,y=y,color=source))+geom_point()+
+facet_wrap(~source)+geom_smooth(method="lm")
+
+```
+## 2.2 Tidying data with pivot functions
+
+In this task you will read in data from a spreadsheet and apply some data wrangling tasks to tidy that data.
+First download the excel spreadsheet entitled “HockeyLeague.xlsx”. The excel file contains two spreadsheets - one with the wins for each team and one with the losses for each team. To read this spreadsheet
+into R we shall make use of the readxl library. You may need to install the library:
+
+```{r}
+install.packages("readxl")
+```
+
+The following code shows how to read in a sheet within an excel file as a data frame. You will need to edit
+the folder_path variable to be the directory which contains your copy of the spreadsheet.
+
+```{r}
+library(readxl) # load the readxl library
+library(tidyverse)
+folder_path<-"C:/Users//ov21312/OneDrive - University of Bristol/Documents/Rproject/UoBRProject/" # set this to the name of the
+# directory containing "HockeyLeague.xlsx"
+file_name<-"HockeyLeague.xlsx" # set the file name
+file_path<-paste(folder_path,file_name,sep="") # create the file_path
+wins_data_frame<-read_excel(file_path,sheet="Wins") # read of a sheet from an xl file
+#Inspect the first 3 rows of the first five columns:
+wins_data_frame %>%
+select(1:5)%>%
+head(3)
+```
+A cell value of the form “a of b” means that a games were won out of a total of b for that season. For
+example, the element for the “Ducks” row of the “1990” column is “30 of 50” meaning that 30 out of 50
+games were won that season.
+Is this tidy data?
+Now apply your data wrangling skills to transform the “wins_data_frame” data frame object into a data
+frame called “wins_tidy” which contains the same information but has just four columns entitled “Team”,
+“Year”, “Wins”, “Total”. The “Team” column should contain the team name, the “Year” column should
+contain the year, the “Wins” column should contain the number of wins for that season and the “Total”
+column the total number of games for that season. The first column should be of character type and
+the remaining columns should be of integer type. You can do this by combining the following functions:
+rename(), pivot_longer(), mutate() and separate().
+You can check the shape of your data frame and the first five rows as follows:
+
+```{r}
+wins_data_frame
+wins_tidy <- wins_data_frame %>%
+  rename(Team = ...1) %>%
+  pivot_longer(!Team,names_to="Year",values_to="Wins") %>%
+  separate(Wins,into=c("Wins","Total"),sep=" of ", convert=T) %>%
+  mutate(Year= as.integer(Year))
+
+wins_tidy%>% dim() # check the dimensions
+wins_tidy%>%head(5) # inspect the top 5 rows
+```
+
+The “HockeyLeague.xlsx” also contains a sheet with the losses for each team by season. Apply a similar
+procedure to read the data from this sheet and transform that data into a dataframe called “losses_tidy”
+with four columns: “Team”, “Year”, “Losses”, “Total” which are similar to thos in the “wins_tidy” data
+frame except for the “Losses” column gives the number of losses for a given season and team, rather than
+the number of losses.
+You may notice that the number of wins plus the number of losses for a given team, in a given year does not
+add up to the total. This is because some of the games are neither wins nor losses but draws. That is, for a
+given year the number of draws is equal to the total number of games minus the sum of the wins and losses.
+Now combine your two data frames, “wins_tidy” and “losses_tidy”, into a single data frame entitled
+“hockey_df” which has 248 rows and 9 columns: A “Team” column which gives the name of the team
+as a character, the “Year” column which gives the season year, the “Wins” column which gives the number
+of wins for that team in the given year, the “Losses” column which gives the number of losses for that team
+in the given year and the “Draws” column which gives the number of draws for that team in the given year,
+the “Wins_rt” which gives the wins as a proportion of the total number of games (ie. Wins/Total) and
+similarly the “Losses_rt” and the “Draws_rt” which gives the losses and draws as a proportion of the total,
+respectively. To do this you can make use of the mutate() function. You may also want to utilise the
+across() function for a slightly neater solution.
+
+```{r}
+losses_data_frame<-read_excel(file_path,sheet="Losses") # read of a sheet from an xl file
+#Inspect the first 3 rows of the first five columns:
+losses_data_frame %>%
+select(1:5)%>%
+head(3)
+
+losses_data_frame
+losses_tidy <- losses_data_frame %>%
+  rename(Team = ...1) %>%
+  pivot_longer(!Team,names_to="Year",values_to="Losses" ) %>%
+  separate 
+
+losses_tidy
+
+losses_tidy%>% dim() # check the dimensions
+losses_tidy%>%head(5) # inspect the top 5 rows
+```
+
+```{r}
+hockey_df <- inner_join(wins_tidy,losses_tidy) %>%
+  mutate(Draws=Total-(Wins+Losses))
+
+%>%
+  
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
