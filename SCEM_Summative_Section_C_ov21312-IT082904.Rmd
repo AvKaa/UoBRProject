@@ -63,6 +63,7 @@ ggplot(redwine,aes(x=quality))+geom_bar(stat = "count",position = "dodge")+
   scale_x_continuous(breaks = seq(3,8,1))+
   ggtitle("Distribution of Red Wine Quality Ratings")+
   theme_classic()
+
 ```
 
 
