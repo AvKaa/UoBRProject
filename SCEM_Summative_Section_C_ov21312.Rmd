@@ -162,22 +162,22 @@ hyper_grid %>%
 ```
 
 ```{r}
-# Define the control
-trControl <- trainControl(method = "repeatedcv",
-    number = 10,
-    search = "grid")
-
-set.seed(0)
-tuneGrid <- expand.grid(.mtry = c(1: 10), ntree=c(1:10))
-rf_mtry <- train(quality~.,
-    data = redwine,
-    method = "rf",
-    metric = "Accuracy",
-    tuneGrid = tuneGrid,
-    trControl = `trControl`)
-    # importance = TRUE,
-    # nodesize = 14,
-    # ntree = 500)
-print(rf_mtry)
+# # Define the control
+# trControl <- trainControl(method = "repeatedcv",
+#     number = 10,
+#     search = "grid")
+# 
+# set.seed(0)
+# tuneGrid <- expand.grid(.mtry = c(1: 10), ntree=c(1:10))
+# rf_mtry <- train(quality~.,
+#     data = redwine,
+#     method = "rf",
+#     metric = "Accuracy",
+#     tuneGrid = tuneGrid,
+#     trControl = `trControl`)
+#     # importance = TRUE,
+#     # nodesize = 14,
+#     # ntree = 500)
+# print(rf_mtry)
 ```
 
