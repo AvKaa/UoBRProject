@@ -45,8 +45,7 @@ redwine$quality_wine<-ifelse(redwine$quality>6,1,0)
 #Let's look at some summary statistics
 # str(redwine)
 # summary(redwine)
-redwine<-redwine%>%mutate(quality=as.factor(quality))
-typeof(redwine$quality)
+
 ```
 
 As we can see, we will be working with an unbalanced dataset, wherein only around 13.57% out of 1599 wines is considered as a good wine.
@@ -103,7 +102,7 @@ The overall accuracy of our model is pretty good at around 92% overall. However,
 
 ```{r,message=FALSE,warning=FALSE}
 # Get importance
-importance    <- importance(redwineRF)
+importance    <- randomForest::importance(redwineRF)
 
 varImportance <- data.frame(Variables = row.names(importance), 
                             Importance = round(importance[ ,'MeanDecreaseGini'],2))
@@ -132,14 +131,14 @@ hyper_grid <- expand.grid(
   sampe_size = c(.55, .632, .70, .80),
   acc   = 0
 )
-
-
-
 ```
 
 
 
 ```{r}
+redwine<-redwine%>%mutate(quality=as.factor(quality))
+typeof(redwine$quality)
+
 for(i in 1:nrow(hyper_grid)) {
   
   # train model
