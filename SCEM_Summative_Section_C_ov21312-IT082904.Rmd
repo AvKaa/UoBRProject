@@ -15,10 +15,10 @@ As the publisher suggest, we will classify the wines by setting an arbitrary cut
 
 ```{r, echo=FALSE}
 # #Libraries needed
-install.packages("tidyverse")
-install.packages("corrplot")
-install.packages("randomForest")
-install.packages("ranger")
+# install.packages("tidyverse")
+# install.packages("corrplot")
+# install.packages("randomForest")
+# install.packages("ranger")
 ```
 
 ```{r}
@@ -65,11 +65,11 @@ ggplot(redwine,aes(x=quality))+geom_bar(stat = "count",position = "dodge")+
 
 ##Predictive Modelling (Binary Classification)
 
-Random forest would be utilised as the baseline model in predicting the quality of a wine. Starting by splitting the data set into the train and test datasets.
+Random forest would be utilised as the baseline model in predicting the quality of a wine. Starting by splitting the data set into the train and test data sets with a split ratio of 0.8.
 ```{r}
 set.seed(0)
 
-train_ratio <- 0.75
+train_ratio <- 0.8
 num_total <- redwine %>% nrow()
 num_train <- floor(num_total*train_ratio)
 num_test <- num_total-num_train
@@ -85,12 +85,12 @@ redwine_test <- redwine %>% filter(row_number() %in% test_ind)
 ```{r}
 # RandomForest Model
 set.seed(0) # Set seed for replicability 
-redwine_model<-randomForest(factor(quality)~.-quality,redwine_train,ntree = 500, mtry = 6, importance = TRUE)
+redwine_model<-randomForest(factor(quality)~.-quality,redwine_train,ntree = 500, mtry = 6, importance = TRUE) # importance of predictors will be assessed. Hence, importance set to TRUE
 
 # Predicting on train set
 pred_train <- predict(redwine_model, redwine_train, type='class')
 # Checking classification accuracy
-cm_train <- table(pred, redwine_train$quality) # Confusion matrix
+cm_train <- table(pred_train, redwine_train$quality) # Confusion matrix
 
 # Predicting on test set
 pred_test <- predict(redwine_model, redwine_test, type='class')
@@ -98,17 +98,27 @@ pred_test <- predict(redwine_model, redwine_test, type='class')
 accuracy <- mean(pred_test == redwine_test$quality)                    
 cm_test <- table(pred_test,redwine_test$quality)
 
+
 accuracy
 cm_test
 ```
 
-The overall accuracy of the model is around 70%. 
+The overall accuracy of the model is around 73%. 
+
+###Cross Validation
+```{r}
+trainy = 0
+x<- rfcv(redwine%>%select(!quality), redwine$quality, cv.fold=5)
+
+
+```
+
 
 ###Variable Importance
 
 ```{r,message=FALSE,warning=FALSE}
 # Get importance
-importance    <- randomForest::importance(redwineRF)
+importance    <- randomForest::importance(redwine_model)
 
 var_Importance <- data.frame(Variables = row.names(importance), 
                             Importance = round(importance[ ,'MeanDecreaseGini'],2))
@@ -129,40 +139,50 @@ ggplot(rank_Importance, aes(x = reorder(Variables, Importance),
 ```
 
 ###Hyperparameter tuning
+Define hyperparameters to tune for the random forest model. In this case the chosen parameters are:
+mtry = 
+node_size = 
+sample_size =
 ```{r}
 # hyperparameter grid search
 hyper_grid <- expand.grid(
   mtry       = seq(1, 10, by = 2),
-  node_size  = seq(3, 9, by = 2),
-  sampe_size = c(.55, .632, .70, .80),
-  acc   = 0
+  node_size  = seq(1, 5, by = 1),
+  sample_size = seq(0.5, 1, by = 0.1),
+  oob   = 0
 )
 ```
 
 
-
+Tuning of random forest model with use of the ranger package
 ```{r}
-redwine<-redwine%>%mutate(quality=as.factor(quality)) # `quality` must be as factor
+redwine_train<-redwine_train%>%mutate(quality=as.factor(quality)) # `quality` must be as factor
 
 for(i in 1:nrow(hyper_grid)) {
-  
+
   # train model
-  model <- ranger(
-    formula         = quality~ ., 
-    data            = redwine_train, 
+  model <- randomForest(
+    formula         = quality~ .,
+    data            = redwine_train,
     num.trees       = 500,
     mtry            = hyper_grid$mtry[i],
     min.node.size   = hyper_grid$node_size[i],
-    sample.fraction = hyper_grid$sampe_size[i],
+    sample.fraction = hyper_grid$sample_size[i],
     seed            = 0
   )
+
+  # Predicting on test set
+  pred_test <-predict(model, redwine_test, type='class')
+  # Checking classification accuracy
+  accuracy <- mean(pred_test == redwine_test$quality)  
+
   
   # add confusion matrix to grid
-  hyper_grid$acc[i] <- sum(diag(6)*model$confusion.matrix) /  sum(model$confusion.matrix)
+  hyper_grid$oob[i] <- accuracy
 }
 
 hyper_grid %>%
-  dplyr::arrange(desc(acc)) %>%
+  dplyr::arrange(desc(oob)) %>%
   head(10)
 ```
 
