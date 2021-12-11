@@ -30,6 +30,7 @@ install.packages("randomForest")
 library(tidyverse)
 library(corrplot)
 library(randomForest)
+<<<<<<< HEAD
 ```
 
 ```{r}
@@ -84,6 +85,8 @@ Above plot shows what we have inferred previously, that good wines were outnumbe
 
 ##Predictive Modelling (Binary Classification)
 =======
+=======
+>>>>>>> 7c3e97d5404e1048850e542cbff2d1137c950cff
 library(ranger)
 library(caret)
 ```
@@ -98,8 +101,7 @@ redwine$quality_wine<-ifelse(redwine$quality>6,1,0)
 #Let's look at some summary statistics
 # str(redwine)
 # summary(redwine)
-redwine<-redwine%>%mutate(quality=as.factor(quality))
-typeof(redwine$quality)
+
 ```
 
 As we can see, we will be working with an unbalanced dataset, wherein only around 13.57% out of 1599 wines is considered as a good wine.
@@ -156,7 +158,7 @@ The overall accuracy of our model is pretty good at around 92% overall. However,
 
 ```{r,message=FALSE,warning=FALSE}
 # Get importance
-importance    <- importance(redwineRF)
+importance    <- randomForest::importance(redwineRF)
 
 varImportance <- data.frame(Variables = row.names(importance), 
                             Importance = round(importance[ ,'MeanDecreaseGini'],2))
@@ -185,6 +187,7 @@ hyper_grid <- expand.grid(
   sampe_size = c(.55, .632, .70, .80),
   acc   = 0
 )
+<<<<<<< HEAD
 ```
 
 As indicated in the synopsis, we would utilize a random forest as our baseline model in predicting the quality of a wine. We will not be using any hyper-parameter tuning and stick with the default of the randomForest function
@@ -212,11 +215,16 @@ rankImportance <- varImportance %>%
   mutate(Rank = paste0('#',dense_rank(desc(Importance))))
 
 
+=======
+>>>>>>> 7c3e97d5404e1048850e542cbff2d1137c950cff
 ```
 
 
 
 ```{r}
+redwine<-redwine%>%mutate(quality=as.factor(quality))
+typeof(redwine$quality)
+
 for(i in 1:nrow(hyper_grid)) {
   
   # train model
@@ -240,32 +248,22 @@ hyper_grid %>%
 ```
 
 ```{r}
-# Define the control
-trControl <- trainControl(method = "repeatedcv",
-    number = 10,
-    search = "grid")
-
-set.seed(0)
-tuneGrid <- expand.grid(.mtry = c(1: 10), ntree=c(1:10))
-rf_mtry <- train(quality~.,
-    data = redwine,
-    method = "rf",
-    metric = "Accuracy",
-    tuneGrid = tuneGrid,
-    trControl = `trControl`)
-    # importance = TRUE,
-    # nodesize = 14,
-    # ntree = 500)
-print(rf_mtry)
+# # Define the control
+# trControl <- trainControl(method = "repeatedcv",
+#     number = 10,
+#     search = "grid")
+# 
+# set.seed(0)
+# tuneGrid <- expand.grid(.mtry = c(1: 10), ntree=c(1:10))
+# rf_mtry <- train(quality~.,
+#     data = redwine,
+#     method = "rf",
+#     metric = "Accuracy",
+#     tuneGrid = tuneGrid,
+#     trControl = `trControl`)
+#     # importance = TRUE,
+#     # nodesize = 14,
+#     # ntree = 500)
+# print(rf_mtry)
 ```
 
-# Use ggplot2 to visualize the relative importance of variables
-ggplot(rankImportance, aes(x = reorder(Variables, Importance), 
-                           y = Importance, fill = Importance)) +
-  geom_bar(stat='identity') + 
-  geom_text(aes(x = Variables, y = 0.5, label = Rank),
-            hjust=0, vjust=0.55, size = 4, colour = 'red') +
-  labs(x = 'Variables') +
-  coord_flip() + 
-  theme_classic()
-```
