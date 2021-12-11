@@ -88,7 +88,6 @@ Above plot shows what we have inferred previously, that good wines were outnumbe
 =======
 >>>>>>> 7c3e97d5404e1048850e542cbff2d1137c950cff
 library(ranger)
-library(caret)
 ```
 
 ```{r}
