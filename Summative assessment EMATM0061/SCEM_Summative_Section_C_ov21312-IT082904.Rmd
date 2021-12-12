@@ -5,13 +5,6 @@ date: "30/11/2021"
 output: html_document
 ---
 
-#Synopsis
-
-As the publisher of this dataset suggests; due to privacy and logistic issues, only physicochemical (inputs) and sensory (the output) variables are available (e.g. there is no data about grape types, wine brand, wine selling price, etc.).
-This specific dataset can be viewed as classification or a regression task. The classes are ordered and not balanced (e.g. there are much more normal wines than excellent or poor ones).
-As the publisher suggest, we will classify the wines by setting an arbitrary cutoff for our dependent variable (wine quality) at e.g. 7 or higher getting classified as 'good/1' and the remainder as 'not good/0'. For this specific kernel we will be doing some basic data explorations and will be doing classification utilizing a quick random forest as our baseline model. 
-
-#Let's have a peek of our dataset
 
 ```{r, echo=FALSE}
 # #Libraries needed
@@ -107,8 +100,9 @@ The overall accuracy of the model is around 73%.
 
 ###Cross Validation
 ```{r}
-trainy = 0
-x<- rfcv(redwine%>%select(!quality), redwine$quality, cv.fold=5)
+rf_cv <- rfcv(trainx = redwine,
+         trainy = redwine$quality,
+         cv.fold=5)
 
 
 ```
@@ -149,7 +143,7 @@ hyper_grid <- expand.grid(
   mtry       = seq(1, 10, by = 2),
   node_size  = seq(1, 5, by = 1),
   sample_size = seq(0.5, 1, by = 0.1),
-  oob   = 0
+  acc   = 0
 )
 ```
 
@@ -178,11 +172,11 @@ for(i in 1:nrow(hyper_grid)) {
 
   
   # add confusion matrix to grid
-  hyper_grid$oob[i] <- accuracy
+  hyper_grid$acc[i] <- accuracy
 }
 
 hyper_grid %>%
-  dplyr::arrange(desc(oob)) %>%
+  dplyr::arrange(desc(acc)) %>%
   head(10)
 ```
 
