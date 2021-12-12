@@ -221,27 +221,27 @@ The overall accuracy of our model is pretty good at around 88% overall. However,
 
 
 ```{r}
-for(i in 1:nrow(hyper_grid)) {
-
-  # train model
-  model <- ranger(
-    formula         = quality_wine~ .,
-    data            = redwine,
-    num.trees       = 500,
-    mtry            = hyper_grid$mtry[i],
-    min.node.size   = hyper_grid$node_size[i],
-    sample.fraction = hyper_grid$sampe_size[i],
-    seed            = 0
-  )
-
-  # add OOB error to grid
-  # hyper_grid$acc[i] <- (model$confusion.matrix[1,1]+ model$confusion.matrix[2,2]+ model$confusion.matrix[3,3] +model$confusion.matrix[4,4]+ model$confusion.matrix[5,5]+ model$confusion.matrix[6,6]) /  sum(model$confusion.matrix)
-  hyper_grid$acc[i] <- sum(diag(3)*model$confusion.matrix) /  sum(model$confusion.matrix)
-}
-
-hyper_grid %>%
-  dplyr::arrange(acc) # %>%
-  # head(10)
+# for(i in 1:nrow(hyper_grid)) {
+# 
+#   # train model
+#   model <- ranger(
+#     formula         = quality_wine~ .,
+#     data            = redwine,
+#     num.trees       = 500,
+#     mtry            = hyper_grid$mtry[i],
+#     min.node.size   = hyper_grid$node_size[i],
+#     sample.fraction = hyper_grid$sampe_size[i],
+#     seed            = 0
+#   )
+# 
+#   # add OOB error to grid
+#   # hyper_grid$acc[i] <- (model$confusion.matrix[1,1]+ model$confusion.matrix[2,2]+ model$confusion.matrix[3,3] +model$confusion.matrix[4,4]+ model$confusion.matrix[5,5]+ model$confusion.matrix[6,6]) /  sum(model$confusion.matrix)
+#   hyper_grid$acc[i] <- sum(diag(3)*model$confusion.matrix) /  sum(model$confusion.matrix)
+# }
+# 
+# hyper_grid %>%
+#   dplyr::arrange(acc) # %>%
+#   # head(10)
 ```
 
 
