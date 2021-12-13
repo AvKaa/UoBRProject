@@ -5,6 +5,14 @@ date: "30/11/2021"
 output: html_document
 ---
 
+# Random Forest Introduction
+
+To understand the random forest model, the concept of a decision tree must be realised.
+
+In a dataset the decision tree splits the data recursively using the decision nodes unless it is left with pure leaf nodes. By maximizing the entropy gain to find the best split. If a given data sample satisfies the condition at a decision node it will branch towards the left, else to the right until it reaches a leaf node where a class label is assigned to it. However, decision trees are highly sensitive to the training data which could result in high variance, thus, the model might fail to generalise.
+
+This is where the Random Forest comes in handy, the Random Forest is a collection of multiple random decision trees and is much less sensitive to the training data. When a data set is passed into a Random Forest model, new sub-datasets are built from the original data. Every sub-dataset contains the same number of rows as the original one and each row is randomly sampled with replacement from the original dataset. This process of generating new datasets is known as Bootstrapping. An independent decision tree will then be trained on each bootstrapped sub-datasets with a subset of features that are randomly selected for each tree (not all of the features are used in each tree). After a forest is formed, data points will be passed through each tree one by one and the predictions will be recorded. The predictions will then be aggregated through a 'majority vote' which would result in a classification prediction. Random Forest can also be used for regression problems just by taking the average instead of the 'majority vote' for combined predctions. 
+
 
 ```{r, echo=FALSE}
 # #Libraries needed
@@ -14,7 +22,7 @@ output: html_document
 # install.packages("ranger")
 ```
 
-```{r}
+```{r, echo=FALSE}
 # library(ggplot2, ggthemes, corrplot, reshape2, dplyr, randomForest)
 library(tidyverse)
 library(corrplot)
@@ -22,6 +30,22 @@ library(randomForest)
 library(ranger)
 ```
 
+# RedWine Quality dataset Introduction
+For this project, Kaggle’s Red Wine Quality dataset was used to build a various classification models to predict the quality of red wines. A “quality” score between 0 and 10 is given to each wine in this dataset.  The quality of a wine is determined by eleven input variables as following:
+
+- Fixed acidity
+- Volatile acidity
+- Citric acid
+- Residual sugar
+- Chlorides
+- Free sulfur dioxide
+- Total sulfur dioxide
+- Density
+- pH
+- Sulfates
+- Alcohol
+
+The summary of the dataset is displayed as following:
 ```{r}
 #Load red wine dataset
 redwine<-read.csv("./winequality-red.csv")
@@ -32,8 +56,9 @@ str(redwine)
 summary(redwine)
 ```
 
-##Correlation of Variables
+# Correlation of Variables
 
+A correlation matrix was then plotted to obtain a better understanding of the relationships between the variables:
 ```{r,message=FALSE,warning=FALSE}
 #Scatterplot Matrix of Variables
 plot(redwine)
@@ -42,23 +67,25 @@ plot(redwine)
 corrplot(cor(redwine))
 ```
 
-We're trying to predict wine quality, so we care about the final 2 columns/rows in order to know which among the variables has the strongest relationship with wine quality. As the heatmap suggests, alcohol has the strongest correlation with wine quality.
+As wine quality was the prediction objective, the final column/row was considered in order to know which variables has the strongest relationship with the wine quality. It can be observed from the heat map that alcohol has the strongest correlation with wine quality.
 
-##Wine Quality
+# Wine Quality Distribution
 
+The distribution of wine quality was then observed with the following plot:
 ```{r,message=FALSE,warning=FALSE}
 #Distribution of red wine quality ratings
 ggplot(redwine,aes(x=quality))+geom_bar(stat = "count",position = "dodge")+
   scale_x_continuous(breaks = seq(3,8,1))+
-  ggtitle("Distribution of Red Wine Quality Ratings")+
+  ggtitle("Distribution of Red Wine Quality")+
   theme_classic()
 
 ```
 
+It can be observed that the quality of wine was not distributed evenly, and that wines of quality 1,2,9 and 10 are not present. Moreover, most wine qualities are concentrated at 5 and 6. A split for bad quality wine (1-5) and good quality wine (6-10) will be implemented. However, to test the extent of the Random Forest model, the dataset was passed on as it is with 6 categories of wine quality.
 
-##Predictive Modelling (Binary Classification)
+# Predictive Modelling (Binary Classification)
 
-Random forest would be utilised as the baseline model in predicting the quality of a wine. Starting by splitting the data set into the train and test data sets with a split ratio of 0.8.
+The dataset was split into the train and test datasets with a split ratio of 0.8.
 ```{r}
 set.seed(0)
 
@@ -75,10 +102,11 @@ redwine_test <- redwine %>% filter(row_number() %in% test_ind)
 ```
 
 
+Once the test split has been performed, the train set was passed on to the Random Forest model for training. The test set was then passed on to the model obtained from the training set to obtain the accuracy and the confusion matrix.
 ```{r}
 # RandomForest Model
 set.seed(0) # Set seed for replicability 
-redwine_model<-randomForest(factor(quality)~.-quality,redwine_train,ntree = 500, mtry = 6, importance = TRUE) # importance of predictors will be assessed. Hence, importance set to TRUE
+redwine_model<-randomForest(factor(quality)~.-quality,redwine_train,ntree = 500, importance = TRUE) # importance of predictors will be assessed. Hence, importance set to TRUE
 
 # Predicting on train set
 pred_train <- predict(redwine_model, redwine_train, type='class')
@@ -96,19 +124,27 @@ accuracy
 cm_test
 ```
 
-The overall accuracy of the model is around 73%. 
+The overall accuracy of the model is around 73%, which is decent considering only the baseline model of Random Forest was implemented. It can also be observed that most of the errors originates from the differentiation of 5 and 6 quality wines. This is predicted as most wines are concentrated at quality 5 and 6, and that the input variables are harder to differentiate due to the quality being one apart.
 
-###Cross Validation
+# Cross Validation
+
+A cross validation was then implemented to 
 ```{r}
 rf_cv <- rfcv(trainx = redwine,
          trainy = redwine$quality,
          cv.fold=5)
+with(rf_cv, plot(n.var, error.cv, log="x", type="o", lwd=2))
 
+result <- replicate(5, rfcv(redwine, redwine$quality), simplify=FALSE)
+error.cv <- sapply(result, "[[", "error.cv")
+matplot(result[[1]]$n.var, cbind(rowMeans(error.cv), error.cv), type="l",
+        lwd=c(2, rep(1, ncol(error.cv))), col=1, lty=1, log="x",
+        xlab="Number of variables", ylab="CV Error")
 
 ```
 
 
-###Variable Importance
+### Variable Importance
 
 ```{r,message=FALSE,warning=FALSE}
 # Get importance
