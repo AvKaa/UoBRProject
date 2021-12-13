@@ -1,0 +1,258 @@
+---
+title: "section_c_cv"
+output: html_document
+---
+
+---
+title: "SCEM_Summative_Section_C_ov21312"
+author: "Avekan"
+date: "30/11/2021"
+output: html_document
+---
+
+
+```{r, echo=FALSE}
+# #Libraries needed
+# install.packages("tidyverse")
+# install.packages("corrplot")
+# install.packages("randomForest")
+# install.packages("ranger")
+```
+
+```{r}
+# library(ggplot2, ggthemes, corrplot, reshape2, dplyr, randomForest)
+library(tidyverse)
+library(corrplot)
+library(randomForest)
+library(ranger)
+```
+
+```{r}
+#Load red wine dataset
+redwine<-read.csv("./winequality-red.csv")
+redwine <- redwine %>%
+  drop_na()
+#summary statistics
+str(redwine)
+summary(redwine)
+```
+
+##Correlation of Variables
+
+```{r,message=FALSE,warning=FALSE}
+#Scatterplot Matrix of Variables
+plot(redwine)
+
+#Correlation Heatmap of Variables
+corrplot(cor(redwine))
+```
+
+We're trying to predict wine quality, so we care about the final 2 columns/rows in order to know which among the variables has the strongest relationship with wine quality. As the heatmap suggests, alcohol has the strongest correlation with wine quality.
+
+##Wine Quality
+
+```{r,message=FALSE,warning=FALSE}
+#Distribution of red wine quality ratings
+ggplot(redwine,aes(x=quality))+geom_bar(stat = "count",position = "dodge")+
+  scale_x_continuous(breaks = seq(3,8,1))+
+  ggtitle("Distribution of Red Wine Quality Ratings")+
+  theme_classic()
+
+```
+
+
+##Predictive Modelling (Binary Classification)
+
+Random forest would be utilised as the baseline model in predicting the quality of a wine. Starting by splitting the data set into the train and test data sets with a split ratio of 0.8.
+```{r}
+set.seed(0)
+
+train_ratio <- 0.8
+num_total <- redwine %>% nrow()
+num_train <- floor(num_total*train_ratio)
+num_test <- num_total-num_train
+
+test_ind <- sample(seq(num_total),num_test)
+train_ind <- setdiff(seq(num_total),test_ind)
+
+redwine_train <- redwine %>% filter(row_number() %in% train_ind)
+redwine_test <- redwine %>% filter(row_number() %in% test_ind)
+```
+
+
+```{r}
+# RandomForest Model
+set.seed(0) # Set seed for replicability 
+redwine_model<-randomForest(factor(quality)~.-quality,redwine_train,ntree = 500, mtry = 6, importance = TRUE) # importance of predictors will be assessed. Hence, importance set to TRUE
+
+# Predicting on train set
+pred_train <- predict(redwine_model, redwine_train, type='class')
+# Checking classification accuracy
+cm_train <- table(pred_train, redwine_train$quality) # Confusion matrix
+
+# Predicting on test set
+pred_test <- predict(redwine_model, redwine_test, type='class')
+# Checking classification accuracy on test set
+accuracy <- mean(pred_test == redwine_test$quality)                    
+cm_test <- table(pred_test,redwine_test$quality)
+
+
+accuracy
+cm_test
+```
+
+The overall accuracy of the model is around 73%. 
+
+###Cross Validation
+```{r}
+num_groups = 5
+seed=0
+set.seed(seed)
+row_ind <- sample(nrow(redwine))
+redwine_randomized <- redwine[row_ind,]
+split <- redwine_randomized %>% 
+   group_by((row_number()-1) %/% (n()/num_groups)) %>%
+   nest %>% 
+   pull(data)
+
+n <- seq(5)
+s <- list()
+for (i in n){
+  s[length(s)+1]<-list(n[!(n %in% i)])
+}
+
+acc <- c()
+
+for (i in 1:5){
+  test_set = split[[i]]
+  train_set = data.frame()
+  for(j in 1:4){
+    index<-s[[i]][j]
+    train_set <- rbind(train_set,split[[index]])
+  }
+  redwine_model<-randomForest(factor(quality)~.-quality,train_set,ntree = 500, mtry = 6)
+  pred_test <- predict(redwine_model, test_set, type='class')
+  # Checking classification accuracy
+  acc[i] <- mean(pred_test == test_set$quality)
+}
+
+acc
+mean(acc)
+```
+
+
+
+
+
+###Variable Importance
+
+```{r,message=FALSE,warning=FALSE}
+# Get importance
+importance    <- randomForest::importance(redwine_model)
+
+var_Importance <- data.frame(Variables = row.names(importance), 
+                            Importance = round(importance[ ,'MeanDecreaseGini'],2))
+
+# Create a rank variable based on importance
+rank_Importance <- var_Importance %>%
+  mutate(Rank = paste0('#',dense_rank(desc(Importance))))
+
+# Use ggplot2 to visualize the relative importance of variables
+ggplot(rank_Importance, aes(x = reorder(Variables, Importance), 
+                           y = Importance, fill = Importance)) +
+  geom_bar(stat='identity') + 
+  geom_text(aes(x = Variables, y = 0.5, label = Rank),
+            hjust=0, vjust=0.55, size = 4, colour = 'red') +
+  labs(x = 'Variables') +
+  coord_flip() + 
+  theme_bw()
+```
+
+###Hyperparameter tuning
+Define hyperparameters to tune for the random forest model. In this case the chosen parameters are:
+mtry = 
+node_size = 
+sample_size =
+```{r}
+# hyperparameter grid search
+hyper_grid <- expand.grid(
+  mtry       = seq(1, 10, by = 2),
+  node_size  = seq(1, 5, by = 1),
+  sample_size = seq(0.5, 1, by = 0.1),
+  acc   = 0
+)
+```
+
+
+Tuning of random forest model with use of the ranger package
+```{r}
+redwine_train<-redwine_train%>%mutate(quality=as.factor(quality)) # `quality` must be as factor
+
+for(i in 1:nrow(hyper_grid)) {
+
+  # train model
+  model <- randomForest(
+    formula         = quality~ .,
+    data            = redwine_train,
+    num.trees       = 500,
+    mtry            = hyper_grid$mtry[i],
+    min.node.size   = hyper_grid$node_size[i],
+    sample.fraction = hyper_grid$sample_size[i],
+    seed            = 0
+  )
+
+  # Predicting on test set
+  pred_test <-predict(model, redwine_test, type='class')
+  # Checking classification accuracy
+  accuracy <- mean(pred_test == redwine_test$quality)  
+
+  
+  # add confusion matrix to grid
+  hyper_grid$acc[i] <- accuracy
+}
+
+hyper_grid %>%
+  dplyr::arrange(desc(acc)) %>%
+  head(10)
+```
+
+
+```{r}
+#Load red wine dataset
+redwine<-read.csv("./winequality-red.csv")
+#Create a variable indicating if a wine is good or bad
+
+quality_2_class<-function(quality){
+  return(if(quality<5){
+    as.integer(0)
+  }else if(quality>6){
+    as.integer(2)
+  }else{
+    as.integer(1)
+  })
+}
+
+
+redwine$quality_wine<-map_dbl(.x=redwine$quality,.f=~quality_2_class(.x))
+  
+
+#Distribution of good/bad red wines
+ggplot(redwine,aes(x=quality_wine,fill=factor(quality_wine)))+geom_bar(stat = "count",position = "dodge")+
+  scale_x_continuous()+
+  ggtitle("Distribution of Good/Mediocre/Bad Red Wines")+
+  theme_classic()
+redwine<-redwine%>%mutate(quality_wine=as.factor(quality_wine))
+typeof(redwine$quality_wine)
+```
+
+Above plot shows what we have inferred previously, that good wines were outnumbered by bad wines by a large margin. Most wines were mediocre (rated 5 or 6), but we could also see that there are some poor wines (3 or 4). A vast majority of good wines has a quality rating of 7.
+
+```{r}
+#Baseline Random Forest Model
+redwineRF<-randomForest(factor(quality_wine)~.-quality,redwine,ntree=150)
+redwineRF
+```
+
+The overall accuracy of our model is pretty good at around 88% overall. However, we could clearly see that it is much better in predicting bad wines than good ones.
+
+
