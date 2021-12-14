@@ -1,9 +1,13 @@
 ---
-title: "SCEM_Summative_Section_C_ov21312"
-author: "Avekan"
+title: "SCEM Summative Section_C"
+author: "Averil Kan (ov21312)"
 date: "30/11/2021"
 output: html_document
 ---
+# Introduction
+
+The following section demonstrates a Random Forest predictive modelling on the dataset 'winequality-red'. The objective of the model is to 
+
 
 # Random Forest Introduction
 
@@ -15,23 +19,24 @@ This is where the Random Forest comes in handy, the Random Forest is a collectio
 
 
 ```{r, echo=FALSE}
-# #Libraries needed
+# #Required libraries 
 # install.packages("tidyverse")
 # install.packages("corrplot")
 # install.packages("randomForest")
 # install.packages("ranger")
 ```
 
-```{r, echo=FALSE}
+```{r, include=FALSE}
 # library(ggplot2, ggthemes, corrplot, reshape2, dplyr, randomForest)
 library(tidyverse)
 library(corrplot)
 library(randomForest)
 library(ranger)
+library(cowplot)
 ```
 
-# RedWine Quality dataset Introduction
-For this project, Kaggle’s Red Wine Quality dataset was used to build a various classification models to predict the quality of red wines. A “quality” score between 0 and 10 is given to each wine in this dataset.  The quality of a wine is determined by eleven input variables as following:
+# Red Wine Quality Dataset Introduction
+For this project, the Red Wine Quality dataset was used to build various classification models to predict the quality of red wines. A “quality” score between 0 and 10 is given to each wine in this dataset.  The quality of a wine is determined by eleven input variables as following:
 
 - Fixed acidity
 - Volatile acidity
@@ -46,7 +51,7 @@ For this project, Kaggle’s Red Wine Quality dataset was used to build a variou
 - Alcohol
 
 The summary of the dataset is displayed as following:
-```{r}
+```{r, message=FALSE,warning=FALSE}
 #Load red wine dataset
 redwine<-read.csv("./winequality-red.csv")
 redwine <- redwine %>%
@@ -67,86 +72,127 @@ plot(redwine)
 corrplot(cor(redwine))
 ```
 
-As wine quality was the prediction objective, the final column/row was considered in order to know which variables has the strongest relationship with the wine quality. It can be observed from the heat map that alcohol has the strongest correlation with wine quality.
+As wine quality was the prediction objective, consider the final column/row in order to find out which variable(s) has the strongest relationship with the wine quality. It can be observed from the heat map that alcohol has the strongest correlation with wine quality.
 
 # Wine Quality Distribution
 
 The distribution of wine quality was then observed with the following plot:
+
 ```{r,message=FALSE,warning=FALSE}
 #Distribution of red wine quality ratings
-ggplot(redwine,aes(x=quality))+geom_bar(stat = "count",position = "dodge")+
+ggplot(redwine,aes(x=quality))+
+  geom_bar(stat = "count",position = "dodge")+
   scale_x_continuous(breaks = seq(3,8,1))+
   ggtitle("Distribution of Red Wine Quality")+
   theme_classic()
 
 ```
 
-It can be observed that the quality of wine was not distributed evenly, and that wines of quality 1,2,9 and 10 are not present. Moreover, most wine qualities are concentrated at 5 and 6. A split for bad quality wine (1-5) and good quality wine (6-10) will be implemented. However, to test the extent of the Random Forest model, the dataset was passed on as it is with 6 categories of wine quality.
+It can be observed that the quality of wine was not distributed evenly, and that wines of quality 1,2,9 and 10 are not present. Moreover, most wine qualities are concentrated at 5 and 6. A split for bad quality wine (1-5) and good quality wine (6-10) will be implemented. However, to test the extent of the Random Forest model ability, the dataset is first passed on as it is containing 6 categories of wine quality.
 
-# Predictive Modelling (Binary Classification)
+# Predictive Modelling 
 
-The dataset was split into the train and test datasets with a split ratio of 0.8.
-```{r}
-set.seed(0)
+The dataset was split into the train and test datasets with a split ratio of 0.8. It is important to perform a test split, as the goal of predictive modelling is to observe the accuracy of the model on data points that are not used in training.
 
-train_ratio <- 0.8
+```{r, message=FALSE,warning=FALSE}
+seed=0
+set.seed(seed)
+
+train_ratio <- 0.8 # Define split ratio
 num_total <- redwine %>% nrow()
 num_train <- floor(num_total*train_ratio)
 num_test <- num_total-num_train
 
-test_ind <- sample(seq(num_total),num_test)
-train_ind <- setdiff(seq(num_total),test_ind)
+test_ind <- sample(seq(num_total),num_test) # Define train indices
+train_ind <- setdiff(seq(num_total),test_ind) # Define test indices
 
+# Pass selection of row indices from original dataset to respective subsets
 redwine_train <- redwine %>% filter(row_number() %in% train_ind)
 redwine_test <- redwine %>% filter(row_number() %in% test_ind)
 ```
 
+Once the test split has been performed, the train set was passed on to the Random Forest model for training. The test set was then passed on to the model obtained from the training set to compute the model accuracy and the confusion matrix.
 
-Once the test split has been performed, the train set was passed on to the Random Forest model for training. The test set was then passed on to the model obtained from the training set to obtain the accuracy and the confusion matrix.
-```{r}
+```{r, message=FALSE,warning=FALSE}
 # RandomForest Model
-set.seed(0) # Set seed for replicability 
+set.seed(seed) # Set seed for replicability 
 redwine_model<-randomForest(factor(quality)~.-quality,redwine_train,ntree = 500, importance = TRUE) # importance of predictors will be assessed. Hence, importance set to TRUE
 
 # Predicting on train set
 pred_train <- predict(redwine_model, redwine_train, type='class')
 # Checking classification accuracy
 cm_train <- table(pred_train, redwine_train$quality) # Confusion matrix
+accuracy_train <- mean(pred_train == redwine_train$quality)                    
 
 # Predicting on test set
 pred_test <- predict(redwine_model, redwine_test, type='class')
 # Checking classification accuracy
-accuracy <- mean(pred_test == redwine_test$quality)                    
+accuracy_test <- mean(pred_test == redwine_test$quality)                    
 cm_test <- table(pred_test,redwine_test$quality)
 
-
-accuracy
+accuracy_train
+accuracy_test
 cm_test
 ```
 
 The overall accuracy of the model is around 73%, which is decent considering only the baseline model of Random Forest was implemented. It can also be observed that most of the errors originates from the differentiation of 5 and 6 quality wines. This is predicted as most wines are concentrated at quality 5 and 6, and that the input variables are harder to differentiate due to the quality being one apart.
 
+However, the model demonstrated a clear overfitting behavior as it performs really well on the training set (100% accuracy) and does not perform as well on the test set (73% accuracy). For a better approximation for the accuracy cross validation is then implemented.
+
 # Cross Validation
 
-A cross validation was then implemented to 
-```{r}
-rf_cv <- rfcv(trainx = redwine,
-         trainy = redwine$quality,
-         cv.fold=5)
-with(rf_cv, plot(n.var, error.cv, log="x", type="o", lwd=2))
+After the model is trained, assumptions cannot be made on whether the model is going to work well on data that it has not seen before yet. In other words, it is uncertain that the model will have the desired accuracy and variance in the production environment. Hence, an assurance of the accuracy of the predictions that the trained model produced is required. This is done through the validation of the model. The validation process decides whether the numerical results quantifying hypothesised relationships between each variable are acceptable as descriptions of the data.
 
-result <- replicate(5, rfcv(redwine, redwine$quality), simplify=FALSE)
-error.cv <- sapply(result, "[[", "error.cv")
-matplot(result[[1]]$n.var, cbind(rowMeans(error.cv), error.cv), type="l",
-        lwd=c(2, rep(1, ncol(error.cv))), col=1, lty=1, log="x",
-        xlab="Number of variables", ylab="CV Error")
+A K-Folds cross validation technique was then implemented to verify if the accuracy is consistent when different data points are fed in as test data. An advantage of the K-Fold technique is that it ensures that every data points from the original dataset has the chance in participating in the training and the test set.
 
+```{r, message=FALSE,warning=FALSE}
+set.seed(seed) # Set seed for replicability 
+
+num_groups = 5  
+n <- seq(5)
+s <- list()
+acc <- c()
+
+
+row_ind <- sample(nrow(redwine)) # Randomisation of row indices  
+redwine_randomized <- redwine[row_ind,] # Form randomised dataset
+split <- redwine_randomized %>% # Section the randomised dataset into 5 groups 
+   group_by((row_number()-1) %/% (n()/num_groups)) %>%
+   nest %>% 
+   pull(data)
+
+# Define the indexes of datasets to be parsed on to either the train or test set in for each loop
+for (i in n){
+  s[length(s)+1]<-list(n[!(n %in% i)])
+}
+
+# Run the randomForest function across each k-fold 
+for (i in 1:5){
+  test_set = split[[i]]
+  train_set = data.frame()
+  for(j in 1:4){
+    index<-s[[i]][j]
+    train_set <- rbind(train_set,split[[index]])
+  }
+  redwine_model<-randomForest(factor(quality)~.-quality,train_set,ntree = 500, mtry = 6)
+  pred_test <- predict(redwine_model, test_set, type='class')
+  # Checking classification accuracy
+  acc[i] <- mean(pred_test == test_set$quality)
+}
+
+# Compute average accuracy 
+mean(acc)
 ```
 
+The cross validation resulted in an average accuracy of around 70% which is around 3% lower than the single test split Random Forest model. This is unexpected as cross-validation tends to result in less overfitting, this might be the result of the seed selection. However, the key of performing cross validation on the model is to provide a more realistic proxy for the accuracy. Thus, the accuracy of the model is accepted as approximately 70%.
 
-### Variable Importance
+# Variable Importance
 
-```{r,message=FALSE,warning=FALSE}
+For each tree, the prediction error on the out-of-bag (OOB) portion of the data is recorded. In the case of classification this is the error rate for classification (MSE for regression). Then the same is done after permuting each predictor variable. The difference between the two are then averaged over all trees and normalized by the standard deviation of the differences. The importance function is part of the Random Forest package.
+
+The respective variable importance can be observed with the following plot: 
+
+```{r, message=FALSE,warning=FALSE}
 # Get importance
 importance    <- randomForest::importance(redwine_model)
 
@@ -168,29 +214,65 @@ ggplot(rank_Importance, aes(x = reorder(Variables, Importance),
   theme_bw()
 ```
 
-###Hyperparameter tuning
-Define hyperparameters to tune for the random forest model. In this case the chosen parameters are:
-mtry = 
-node_size = 
-sample_size =
+The variable importance plot demonstrates that the 'alcohol' level has the greatest impact on the quality of the red wine. This is coherent with the correlation heat map shown above. The correlations between the variables of top 4 importance and the quality of the red wines are then further investigated by the following scatter plots:
+
+```{r, message=FALSE,warning=FALSE}
+a_q <- ggplot(redwine, aes(alcohol, quality)) +
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)+
+  theme_bw()
+va_q <- ggplot(redwine, aes(volatile.acidity, quality)) +
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)+
+  theme_bw()
+s_q <- ggplot(redwine, aes(sulphates, quality)) +
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)+
+  theme_bw()
+tsd_q <- ggplot(redwine, aes(total.sulfur.dioxide, quality)) +
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)+
+  theme_bw()
+
+
+plot_grid(a_q, va_q, s_q, tsd_q, labels = "AUTO")
+```
+
+
+The plots demonstrates that wines with higher quality have higher levels of alcohol, have a lower volatile acidity, higher levels of sulphates, and lower levels of total sulfur dioxide on average.
+
 ```{r}
+a<-cor.test(redwine$alcohol,redwine$quality)
+a
+a$p.value
+```
+
+# Hyperparameter tuning
+
+While the model parameters are learned during the training process, hyperparameters must be set before training. In the case of a Random Forest model, the hyperparameters can include the number of decision tress, the number of features considered when splitting a node by each tree, the node size, sample size etc. The tuning of these parameters relies on a more experimental approach. Therefore, iterations will be carried out in order to search for the best combination(s) of hyperparameters.  
+
+The hyperparameters selected to be tuned for the random forest model are defined as following:
+-mtry: The number of variables available for splitting at each tree node. In classification models, the function default is floor of the square root of the number of predictor variables. Which is 3 for the red wine data frame.
+-node_size:  The minimum number of observations in a terminal node. A large node size causes smaller trees to be grown, thus, takes less time. The default value for the Random Forest classification model is 1 (5 for regression).
+-sample_size = The sample size of a random forest acts as a control of the "degree of randomness", thus, a way of adjusting the bias variance trade-off. The greater the sample leads to a "less random" forest, which would induce the tendency of an overfitting model. On the other hand decreasing the sample size increases the variation per tree within the forest at the expense of model performance.
+
+```{r, message=FALSE,warning=FALSE}
 # hyperparameter grid search
 hyper_grid <- expand.grid(
   mtry       = seq(1, 10, by = 2),
   node_size  = seq(1, 5, by = 1),
   sample_size = seq(0.5, 1, by = 0.1),
-  acc   = 0
+  acc = 0 # Define empty list to store test accuracies
 )
 ```
 
-
-Tuning of random forest model with use of the ranger package
-```{r}
-redwine_train<-redwine_train%>%mutate(quality=as.factor(quality)) # `quality` must be as factor
+Tuning of random forest model using a for loop:
+```{r, message=FALSE,warning=FALSE}
+redwine_train<-redwine_train%>%mutate(quality=as.factor(quality)) # `quality` must be fed into the model as factor
 
 for(i in 1:nrow(hyper_grid)) {
 
-  # train model
+  # Train model
   model <- randomForest(
     formula         = quality~ .,
     data            = redwine_train,
@@ -198,7 +280,7 @@ for(i in 1:nrow(hyper_grid)) {
     mtry            = hyper_grid$mtry[i],
     min.node.size   = hyper_grid$node_size[i],
     sample.fraction = hyper_grid$sample_size[i],
-    seed            = 0
+    seed            = seed
   )
 
   # Predicting on test set
@@ -207,17 +289,17 @@ for(i in 1:nrow(hyper_grid)) {
   accuracy <- mean(pred_test == redwine_test$quality)  
 
   
-  # add confusion matrix to grid
+  # Add confusion matrix to grid
   hyper_grid$acc[i] <- accuracy
 }
 
-hyper_grid %>%
+hyper_grid %>% # Display the top 10 hyperparameter combination
   dplyr::arrange(desc(acc)) %>%
   head(10)
 ```
+The best combination of hyperparameters results in an accuracy of 75%, which is 5% above the k-fold cross-validated model. Although it is theoretically stated that the best mtry value should be the square root of the number of predictor values, it can be observed that feeding in 1 predictor per tree gives the best results.
 
-
-```{r}
+```{r, message=FALSE,warning=FALSE}
 #Load red wine dataset
 redwine<-read.csv("./winequality-red.csv")
 #Create a variable indicating if a wine is good or bad
@@ -247,7 +329,7 @@ typeof(redwine$quality_wine)
 
 Above plot shows what we have inferred previously, that good wines were outnumbered by bad wines by a large margin. Most wines were mediocre (rated 5 or 6), but we could also see that there are some poor wines (3 or 4). A vast majority of good wines has a quality rating of 7.
 
-```{r}
+```{r, message=FALSE,warning=FALSE}
 #Baseline Random Forest Model
 redwineRF<-randomForest(factor(quality_wine)~.-quality,redwine,ntree=150)
 redwineRF
@@ -256,7 +338,7 @@ redwineRF
 The overall accuracy of our model is pretty good at around 88% overall. However, we could clearly see that it is much better in predicting bad wines than good ones.
 
 
-```{r}
+```{r, message=FALSE,warning=FALSE}
 # for(i in 1:nrow(hyper_grid)) {
 # 
 #   # train model
