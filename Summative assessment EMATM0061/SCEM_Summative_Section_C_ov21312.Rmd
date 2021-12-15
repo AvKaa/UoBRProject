@@ -65,14 +65,22 @@ summary(redwine)
 
 A correlation matrix was then plotted to obtain a better understanding of the relationships between the variables:
 ```{r,message=FALSE,warning=FALSE}
-#Scatterplot Matrix of Variables
+# Scatterplot Matrix of Variables
 plot(redwine)
 
-#Correlation Heatmap of Variables
-corrplot(cor(redwine))
+# Correlation Heatmap of Variables
+corrplot(cor(redwine), method = "square",
+         type = "full", tl.cex=0.8,tl.col = "black")
 ```
 
 As wine quality was the prediction objective, consider the final column/row in order to find out which variable(s) has the strongest relationship with the wine quality. It can be observed from the heat map that alcohol has the strongest correlation with wine quality.
+
+```{r}
+# Correlation test
+a<-cor.test(redwine$alcohol,redwine$quality)
+a
+a$p.value
+```
 
 # Wine Quality Distribution
 
@@ -85,10 +93,9 @@ ggplot(redwine,aes(x=quality))+
   scale_x_continuous(breaks = seq(3,8,1))+
   ggtitle("Distribution of Red Wine Quality")+
   theme_classic()
-
 ```
 
-It can be observed that the quality of wine was not distributed evenly, and that wines of quality 1,2,9 and 10 are not present. Moreover, most wine qualities are concentrated at 5 and 6. A split for bad quality wine (1-5) and good quality wine (6-10) will be implemented. However, to test the extent of the Random Forest model ability, the dataset is first passed on as it is containing 6 categories of wine quality.
+It can be observed that the quality of wine was not distributed evenly, and that wines of quality 1,2,9 and 10 are not present. Moreover, most wine qualities are concentrated at 5 and 6. A split for bad quality wine (1-5) and good quality wine (6-10) will be implemented. However, to test the capability of the Random Forest model on an imbalanced dataset, the dataset is first passed on as it is containing 6 categories of wine quality. This is done because the undersampling/ oversampling of data points are common problems in the field of data mining and machine learning.
 
 # Predictive Modelling 
 
@@ -241,12 +248,6 @@ plot_grid(a_q, va_q, s_q, tsd_q, labels = "AUTO")
 
 The plots demonstrates that wines with higher quality have higher levels of alcohol, have a lower volatile acidity, higher levels of sulphates, and lower levels of total sulfur dioxide on average.
 
-```{r}
-a<-cor.test(redwine$alcohol,redwine$quality)
-a
-a$p.value
-```
-
 # Hyperparameter tuning
 
 While the model parameters are learned during the training process, hyperparameters must be set before training. In the case of a Random Forest model, the hyperparameters can include the number of decision tress, the number of features considered when splitting a node by each tree, the node size, sample size etc. The tuning of these parameters relies on a more experimental approach. Therefore, iterations will be carried out in order to search for the best combination(s) of hyperparameters.  
@@ -254,19 +255,46 @@ While the model parameters are learned during the training process, hyperparamet
 The hyperparameters selected to be tuned for the random forest model are defined as following:
 -mtry: The number of variables available for splitting at each tree node. In classification models, the function default is floor of the square root of the number of predictor variables. Which is 3 for the red wine data frame.
 -node_size:  The minimum number of observations in a terminal node. A large node size causes smaller trees to be grown, thus, takes less time. The default value for the Random Forest classification model is 1 (5 for regression).
--sample_size = The sample size of a random forest acts as a control of the "degree of randomness", thus, a way of adjusting the bias variance trade-off. The greater the sample leads to a "less random" forest, which would induce the tendency of an overfitting model. On the other hand decreasing the sample size increases the variation per tree within the forest at the expense of model performance.
+-sample_size = The sample size of a random forest acts as a control of the "degree of randomness", thus, a way of adjusting the bias variance trade-off. The increase in sample size leads to a "less random" forest, which would induce the tendency of an overfitting model. On the other hand decreasing the sample size increases the variation per tree within the forest at the expense of model performance. The sample size ranges from 0 < sample size ≤ 1.
+-ntree = The number of trees in the forest, the ntree value is independent of other hyperparameters as the accuracy will converge into a stable value after a certain number of trees. Hence, the convergence ntree value will be computed firstly. It is also important that the greater the value of ntree the greater computational force required.
+
+The accuracy of the baseline Random Forest model across a sequence of ntree values can be observed with the following plot:
+```{r, message=FALSE,warning=FALSE}
+set.seed(seed)
+
+ntree <- seq(100,1500,by=10)
+ntree_acc <- function(ntree){
+  redwine_model<-randomForest(factor(quality)~.-quality,redwine_train,ntree = ntree, importance = TRUE)
+  pred_test <- predict(redwine_model, redwine_test, type='class')
+  accuracy_test <- mean(pred_test == redwine_test$quality)                    
+
+  return(accuracy_test)
+}
+
+tune_ntree <- data.frame(ntree=ntree)%>%
+  mutate(accuracy = map(.x=ntree,.f=~ntree_acc(.x)))
+
+tune_ntree %>%   
+  mutate(accuracy = as.numeric(accuracy)) %>%
+  ggplot(aes(ntree,accuracy)) +
+  geom_line() +
+  geom_smooth(se=F)+
+  theme_bw()
+```
+The accuracy stabalises at around 73.5% after the ntree value reaches 600. Thus, to minimize computational force for hyperparameter tuning, a ntree value of 600 will be used.
 
 ```{r, message=FALSE,warning=FALSE}
 # hyperparameter grid search
 hyper_grid <- expand.grid(
   mtry       = seq(1, 10, by = 2),
   node_size  = seq(1, 5, by = 1),
-  sample_size = seq(0.5, 1, by = 0.1),
+  sample_size = seq(0.1, 1, by = 0.1),
   acc = 0 # Define empty list to store test accuracies
 )
 ```
 
-Tuning of random forest model using a for loop:
+Random forest model tuning to obtain the best combinations of hyperparameters shown in the table as following:
+
 ```{r, message=FALSE,warning=FALSE}
 redwine_train<-redwine_train%>%mutate(quality=as.factor(quality)) # `quality` must be fed into the model as factor
 
@@ -276,7 +304,7 @@ for(i in 1:nrow(hyper_grid)) {
   model <- randomForest(
     formula         = quality~ .,
     data            = redwine_train,
-    num.trees       = 500,
+    num.trees       = 600, # Set fix ntree value to 600
     mtry            = hyper_grid$mtry[i],
     min.node.size   = hyper_grid$node_size[i],
     sample.fraction = hyper_grid$sample_size[i],
@@ -286,9 +314,9 @@ for(i in 1:nrow(hyper_grid)) {
   # Predicting on test set
   pred_test <-predict(model, redwine_test, type='class')
   # Checking classification accuracy
-  accuracy <- mean(pred_test == redwine_test$quality)  
+  accuracy <- mean(pred_test == redwine_test$quality)
 
-  
+
   # Add confusion matrix to grid
   hyper_grid$acc[i] <- accuracy
 }
@@ -297,69 +325,196 @@ hyper_grid %>% # Display the top 10 hyperparameter combination
   dplyr::arrange(desc(acc)) %>%
   head(10)
 ```
-The best combination of hyperparameters results in an accuracy of 75%, which is 5% above the k-fold cross-validated model. Although it is theoretically stated that the best mtry value should be the square root of the number of predictor values, it can be observed that feeding in 1 predictor per tree gives the best results.
+The best combination of hyperparameters results in an accuracy of around 75%, which is 5% above the k-fold cross-validated model. This shows that the tuning of hyperparameters does have a good amount of impact on Random Forest predictive modelling.
+
+The table shows that the best mtry values are 1 and 3, which is in coherent with the Random Forest theory, Where the best mtry value should be the square root of the number of predictor values (the redwine dataset contains 12 predictor values, floor(sqrt(3))=3). It can also be observed that the most suitable node size is 2 with three occurrence and 4 with four occurrence in the table. However, a 'best' sample size value cannot be ascertained, this might the result of heavier dependencies that certain hyperparameters have on other hyperparameters.
+
+# Random Forest on Bianry Classification
+
+As mentioned above, most wine qualities are concentrated at 5 and 6. After testing the capabilities of the Random Forest model on an imbalanced dataset. The quality of wines will be redefined as bad quality wine (1-5) and good quality wine (6-10) to obtain a relatively balanced dataset for  a binary classification prediction model. 
+
+The distribution of good and bad quality wines can be observed with the following plot:
+```{r, message=FALSE,warning=FALSE}
+
+redwine<-read.csv("./winequality-red.csv") # Recall redwine.csv as 'quality' was converted as factor above
+
+# Create binary quality column and remove the quality column
+redwine$wine_quality<-ifelse(redwine$quality>5,1,0)
+redwine <- redwine %>%
+  select(!quality)
+
+# Display distribution of good and bad quality wines
+ggplot(redwine,aes(x=wine_quality,fill=factor(wine_quality)))+geom_bar(stat = "count",position = "dodge")+
+  scale_x_continuous(breaks = seq(0,1,1))+
+  ggtitle("Distribution of Good and Bad Red Quality Wines")+
+  labs(x="Wine quality",y="Count")+
+  theme_classic()
+```
+
+Following the same methodology of test splitting, the Random Forest binary classification accuracy for the red wine dataset is obtained as following:
+```{r, message=FALSE,warning=FALSE}
+# Test split
+set.seed(seed)
+
+train_ratio <- 0.8 # Define split ratio
+num_total <- redwine %>% nrow()
+num_train <- floor(num_total*train_ratio)
+num_test <- num_total-num_train
+test_ind <- sample(seq(num_total),num_test) # Define train indices
+train_ind <- setdiff(seq(num_total),test_ind) # Define test indices
+
+# Pass selection of row indices from original dataset to respective subsets
+redwine_train <- redwine %>% filter(row_number() %in% train_ind)
+redwine_test <- redwine %>% filter(row_number() %in% test_ind)
+
+# Convert 'wine_quality' to factor
+redwine_train<-redwine_train %>%
+  mutate(wine_quality=as.factor(wine_quality)) # `quality` must be fed into the model as factor
+
+# RandomForest Model
+redwine_model_binary<-randomForest(factor(wine_quality)~.-wine_quality,redwine_train,ntree = 500, importance = TRUE) # importance of predictors will be assessed. Hence, importance set to TRUE
+
+# Predicting on train set
+pred_train <- predict(redwine_model_binary, redwine_train, type='class')
+# Checking classification accuracy
+cm_train <- table(pred_train, redwine_train$wine_quality) # Confusion matrix
+accuracy_train <- mean(pred_train == redwine_train$wine_quality)                    
+
+# Predicting on test set
+pred_test <- predict(redwine_model_binary, redwine_test, type='class')
+# Checking classification accuracy
+accuracy_test <- mean(pred_test == redwine_test$wine_quality)                    
+cm_test <- table(pred_test,redwine_test$wine_quality)
+
+accuracy_train
+accuracy_test
+cm_test
+```
+
+The overall accuracy of the model is pretty high at around 86%. An overfitting behavior can still be observed, additionally, it can be seen that the model does a better job at predicting good wines than bad wines. A k-fold cross validation is again performed as following:
 
 ```{r, message=FALSE,warning=FALSE}
-#Load red wine dataset
-redwine<-read.csv("./winequality-red.csv")
-#Create a variable indicating if a wine is good or bad
+set.seed(seed) # Set seed for replicability 
 
-quality_2_class<-function(quality){
-  return(if(quality<5){
-    as.integer(0)
-  }else if(quality>6){
-    as.integer(2)
-  }else{
-    as.integer(1)
-  })
+row_ind <- sample(nrow(redwine)) # Randomisation of row indices  
+redwine_randomized <- redwine[row_ind,] # Form randomised dataset
+split <- redwine_randomized %>% # Section the randomised dataset into 5 groups 
+   group_by((row_number()-1) %/% (n()/num_groups)) %>%
+   nest %>% 
+   pull(data)
+
+# Define the indexes of datasets to be parsed on to either the train or test set in for each loop
+for (i in n){
+  s[length(s)+1]<-list(n[!(n %in% i)])
 }
 
+# Run the randomForest function across each k-fold 
+for (i in 1:5){
+  test_set = split[[i]]
+  train_set = data.frame()
+  for(j in 1:4){
+    index<-s[[i]][j]
+    train_set <- rbind(train_set,split[[index]])
+  }
+  redwine_model<-randomForest(factor(wine_quality)~.-wine_quality,train_set,ntree = 500, mtry = 6)
+  pred_test <- predict(redwine_model, test_set, type='class')
+  # Checking classification accuracy
+  acc[i] <- mean(pred_test == test_set$wine_quality)
+}
 
-redwine$quality_wine<-map_dbl(.x=redwine$quality,.f=~quality_2_class(.x))
-  
-
-#Distribution of good/bad red wines
-ggplot(redwine,aes(x=quality_wine,fill=factor(quality_wine)))+geom_bar(stat = "count",position = "dodge")+
-  scale_x_continuous()+
-  ggtitle("Distribution of Good/Mediocre/Bad Red Wines")+
-  theme_classic()
-redwine<-redwine%>%mutate(quality_wine=as.factor(quality_wine))
-typeof(redwine$quality_wine)
+# Compute average accuracy 
+mean(acc)
 ```
 
-Above plot shows what we have inferred previously, that good wines were outnumbered by bad wines by a large margin. Most wines were mediocre (rated 5 or 6), but we could also see that there are some poor wines (3 or 4). A vast majority of good wines has a quality rating of 7.
+The cross validation accuracy is 82% which is also slightly lower than the single split random forest model (by 4%). 
+
+Following the same steps, create a hypergrid and pass it into the Random Forest mdoel for hyperparameter tuning.
 
 ```{r, message=FALSE,warning=FALSE}
-#Baseline Random Forest Model
-redwineRF<-randomForest(factor(quality_wine)~.-quality,redwine,ntree=150)
-redwineRF
+# hyperparameter grid search
+hyper_grid_binary <- expand.grid(
+  mtry       = seq(1, 10, by = 2),
+  node_size  = seq(1, 5, by = 1),
+  sample_size = seq(0.1, 1, by = 0.1),
+  acc = 0 # Define empty list to store test accuracies
+)
 ```
 
-The overall accuracy of our model is pretty good at around 88% overall. However, we could clearly see that it is much better in predicting bad wines than good ones.
+```{r}
+  # Train model
+  model <- randomForest(
+    formula         = wine_quality~ .,
+    data            = redwine_train,
+    num.trees       = 600, # Set fix ntree value to 600
+    mtry            = hyper_grid_binary$mtry[1],
+    min.node.size   = hyper_grid_binary$node_size[1],
+    sample.fraction = hyper_grid_binary$sample_size[1],
+    seed            = seed
+  )
 
+  # Predicting on test set
+  pred_test <-predict(model, redwine_test, type='class')
+  # Checking classification accuracy
+  accuracy <- mean(pred_test == redwine_test$wine_quality)
+accuracy
 
-```{r, message=FALSE,warning=FALSE}
-# for(i in 1:nrow(hyper_grid)) {
-# 
-#   # train model
-#   model <- ranger(
-#     formula         = quality_wine~ .,
-#     data            = redwine,
-#     num.trees       = 500,
-#     mtry            = hyper_grid$mtry[i],
-#     min.node.size   = hyper_grid$node_size[i],
-#     sample.fraction = hyper_grid$sampe_size[i],
-#     seed            = 0
-#   )
-# 
-#   # add OOB error to grid
-#   # hyper_grid$acc[i] <- (model$confusion.matrix[1,1]+ model$confusion.matrix[2,2]+ model$confusion.matrix[3,3] +model$confusion.matrix[4,4]+ model$confusion.matrix[5,5]+ model$confusion.matrix[6,6]) /  sum(model$confusion.matrix)
-#   hyper_grid$acc[i] <- sum(diag(3)*model$confusion.matrix) /  sum(model$confusion.matrix)
-# }
-# 
-# hyper_grid %>%
-#   dplyr::arrange(acc) # %>%
-#   # head(10)
+  # Add confusion matrix to grid
+  hyper_grid_binary$acc[i] <- accuracy
 ```
+
+
+```{r}
+redwine <- redwine %>%
+  mutate(wine_quality=as.factor(wine_quality))
+
+for(i in 1:nrow(hyper_grid_binary)) {
+
+  # Train model
+  model <- randomForest(
+    formula         = wine_quality~ .,
+    data            = redwine_train,
+    num.trees       = 600, # Set fix ntree value to 600
+    mtry            = hyper_grid_binary$mtry[i],
+    min.node.size   = hyper_grid_binary$node_size[i],
+    sample.fraction = hyper_grid_binary$sample_size[i],
+    seed            = seed
+  )
+
+  # Predicting on test set
+  pred_test <-predict(model, redwine_test, type='class')
+  # Checking classification accuracy
+  accuracy <- mean(pred_test == redwine_test$wine_quality)
+
+
+  # Add confusion matrix to grid
+  hyper_grid_binary$acc[i] <- accuracy
+}
+
+hyper_grid_binary %>% # Display the top 10 hyperparameter combination
+  dplyr::arrange(desc(acc)) %>%
+  head(10)
+```
+
+The best combination of hyperparameters results in an accuracy of around 87%, which is 5% above the k-fold cross-validated model. 
+
+# Random Forest from different packages
+
+In the following section the hyperparameter tuning will be carried out using a d
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
