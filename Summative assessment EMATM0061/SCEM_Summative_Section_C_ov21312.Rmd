@@ -1,13 +1,17 @@
 ---
-title: "SCEM Summative Section_C"
+title: "SCEM Summative Section C"
 author: "Averil Kan (ov21312)"
 date: "30/11/2021"
 output: html_document
 ---
-# Introduction
+# Objectives
 
-The following section demonstrates a Random Forest predictive modelling on the dataset 'winequality-red'. The objective of the model is to 
+The following report demonstrates a Random Forest predictive modelling on the dataset 'winequality-red'. The objective of the model is as follows:
 
+- Observe the capabilities of the Random Forest model on both an imbalanced and balanced data set.
+- Observe how the accuracy differs when the model is fed with different subsets of data as test sets with use of the k-fold cross validation technique.
+- Evaluate the affects of hyperparameters tuning on the Random Forest model accuracy.
+- Evaluate the benefits and drawbacks of carrying out Random Forest through other methods (packages). 
 
 # Random Forest Introduction
 
@@ -24,6 +28,9 @@ This is where the Random Forest comes in handy, the Random Forest is a collectio
 # install.packages("corrplot")
 # install.packages("randomForest")
 # install.packages("ranger")
+# install.packages("caret")
+# install.packages("cowplot")
+# install.packages("microbenchmark")
 ```
 
 ```{r, include=FALSE}
@@ -32,7 +39,9 @@ library(tidyverse)
 library(corrplot)
 library(randomForest)
 library(ranger)
+library(caret)
 library(cowplot)
+library(microbenchmark)
 ```
 
 # Red Wine Quality Dataset Introduction
@@ -259,6 +268,7 @@ The hyperparameters selected to be tuned for the random forest model are defined
 -ntree = The number of trees in the forest, the ntree value is independent of other hyperparameters as the accuracy will converge into a stable value after a certain number of trees. Hence, the convergence ntree value will be computed firstly. It is also important that the greater the value of ntree the greater computational force required.
 
 The accuracy of the baseline Random Forest model across a sequence of ntree values can be observed with the following plot:
+
 ```{r, message=FALSE,warning=FALSE}
 set.seed(seed)
 
@@ -297,9 +307,8 @@ Random forest model tuning to obtain the best combinations of hyperparameters sh
 
 ```{r, message=FALSE,warning=FALSE}
 redwine_train<-redwine_train%>%mutate(quality=as.factor(quality)) # `quality` must be fed into the model as factor
-
 for(i in 1:nrow(hyper_grid)) {
-
+  
   # Train model
   model <- randomForest(
     formula         = quality~ .,
@@ -440,30 +449,29 @@ hyper_grid_binary <- expand.grid(
 )
 ```
 
-```{r}
-  # Train model
-  model <- randomForest(
-    formula         = wine_quality~ .,
-    data            = redwine_train,
-    num.trees       = 600, # Set fix ntree value to 600
-    mtry            = hyper_grid_binary$mtry[1],
-    min.node.size   = hyper_grid_binary$node_size[1],
-    sample.fraction = hyper_grid_binary$sample_size[1],
-    seed            = seed
-  )
+```{r, message=FALSE,warning=FALSE}
+# Train model
+model <- randomForest(
+  formula         = wine_quality~ .,
+  data            = redwine_train,
+  num.trees       = 600, # Set fix ntree value to 600
+  mtry            = hyper_grid_binary$mtry[1],
+  min.node.size   = hyper_grid_binary$node_size[1],
+  sample.fraction = hyper_grid_binary$sample_size[1],
+  seed            = seed
+)
 
-  # Predicting on test set
-  pred_test <-predict(model, redwine_test, type='class')
-  # Checking classification accuracy
-  accuracy <- mean(pred_test == redwine_test$wine_quality)
-accuracy
+# Predicting on test set
+pred_test <-predict(model, redwine_test, type='class')
+# Checking classification accuracy
+accuracy <- mean(pred_test == redwine_test$wine_quality)
 
-  # Add confusion matrix to grid
-  hyper_grid_binary$acc[i] <- accuracy
+# Add confusion matrix to grid
+hyper_grid_binary$acc[i] <- accuracy
 ```
 
 
-```{r}
+```{r, message=FALSE,warning=FALSE}
 redwine <- redwine %>%
   mutate(wine_quality=as.factor(wine_quality))
 
@@ -499,16 +507,102 @@ The best combination of hyperparameters results in an accuracy of around 87%, wh
 
 # Random Forest from different packages
 
+<<<<<<< HEAD
 In the following section the hyperparameter tuning will be carried out using 2 different packages, the ranger package and the caret package.   
+=======
+As the 'randomForest()' package is computation expensive, the following section aims to explore hyperparameter tuning utilizing other Random Forest packages. 
 
+The 'Ranger()' package is used for comparison as it is designed to maximize computational efficiency. The randomForest() package uses Breiman’s Random Forest implementation, while ranger() supplements its theory from a wide range of interpretations aiming to maximize speed. 
 
+A benchmark comparison of the RandomForest model using the microbenchmark() function is shown as following:
 
+```{r, message=FALSE,warning=FALSE}
+redwine<-read.csv("./winequality-red.csv")
+set.seed(seed)
 
+# Benchmark of randomForest() function
+RandomForest_bm <- microbenchmark(
+  randomForest(factor(quality)~.-quality, redwine, ntree = 500, mtry=3),
+times = 25, unit = 's')
+>>>>>>> 1f18e2c59f4da930ef8b3b978b5dc10a0966a530
 
+# Benchmark of ranger() function
+Ranger_bm <- microbenchmark(
+  ranger(dependent.variable.name = 'quality',data = redwine, num.trees = 500, mtry =3, num.threads = 1),
+times = 25, unit = 's')
 
+rbind(RandomForest_bm,Ranger_bm)
+```
+The mean processing time for randomForest() is about 0.8 seconds. This is considered expensive for a dataframe with only 1600 rows. The ranger() function was designed for parallel processing. Hence, to demonstrate that ranger() is not just faster because of parallel processing but also a more efficient way of processing, the num.threads is set to 1. Results shows that the Ranger() package reduces the processing time by more than a half.
 
+Although the processing time is more than halved when using the Ranger() function, it is equally important to test the accuracy of the model computed by the function.
 
+```{r}
+set.seed(seed)
 
+redwine <- redwine %>%
+  mutate(quality=as.factor(quality))
+
+train_ratio <- 0.8 # Define split ratio
+num_total <- redwine %>% nrow()
+num_train <- floor(num_total*train_ratio)
+num_test <- num_total-num_train
+test_ind <- sample(seq(num_total),num_test) # Define train indices
+train_ind <- setdiff(seq(num_total),test_ind) # Define test indices
+
+# Pass selection of row indices from original dataset to respective subsets
+redwine_train <- redwine %>% filter(row_number() %in% train_ind)
+redwine_test <- redwine %>% filter(row_number() %in% test_ind)
+redwine_test_x <- redwine_test%>%
+  select(!quality)
+redwine_test_y <- redwine_test%>%
+  select(quality)
+
+# hyperparameter grid search
+hyper_grid_ranger <- expand.grid(
+  mtry       = seq(1, 10, by = 2),
+  node_size  = seq(1, 5, by = 1),
+  sample_size = seq(0.1, 1, by = 0.1),
+  acc = 0 # Define empty list to store test accuracies
+)
+
+for(i in 1:nrow(hyper_grid_binary)) {
+
+  # Train model
+  model <- ranger(
+    formula         = quality~ .,
+    data            = redwine_train,
+    num.trees       = 600, # Set fix ntree value to 600
+    mtry            = hyper_grid_ranger$mtry[i],
+    min.node.size   = hyper_grid_ranger$node_size[i],
+    sample.fraction = hyper_grid_ranger$sample_size[i],
+    seed            = seed
+  )
+
+  # Predicting on test set
+  pred_test <-predict(model, redwine_test_x)
+  # Checking classification accuracy
+  accuracy <- 1-model$prediction.error
+
+  # Add confusion matrix to grid
+  hyper_grid_ranger$acc[i] <- accuracy
+}
+
+hyper_grid_ranger %>% # Display the top 10 hyperparameter combination
+  dplyr::arrange(desc(acc)) %>%
+  head(10)
+```
+
+The maximum accuracy obtained after tuning the hyperparameters with the ranger() function is around 70% which is 5% lower than the accuracy obtained from the randomForest() function.
+
+# Summary
+
+From computation of the Random Forest model on the wine quality dataset performed above it can be concluded that:
+- Cross validating the Random Forest model generally outputs a lower accuracy percentage. However, this value is a more realistic proxy of the accuracy of the model.
+- Variable importance evaluation shows that the higher ranked variables also demonstrates a stronger relationship with the quality through the use of scatter plots (ie, strong trend line observed in alcohol vs quality, weak trend line observed in total sulfur dioxide vs quality).
+- Hyperparameter tuning generally increases the accuracy of the model by 5% and demonstrates the importance of tailoring hyperparameters for the specific dataset.
+- It can be observed that the Random Forest model works better on Binary classification than on multi-class prediction. Hence, it might be more suitable to evaluate other models when dealing with a biased dataset.
+- The Ranger() version of Random Forest displays massive reduction in computational expense with a slight trade-off of accuracy. Thus, for larger datasets the Ranger() function should be considered over the original randomForest() function instead.
 
 
 
