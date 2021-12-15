@@ -499,7 +499,7 @@ The best combination of hyperparameters results in an accuracy of around 87%, wh
 
 # Random Forest from different packages
 
-In the following section the hyperparameter tuning will be carried out using a d
+In the following section the hyperparameter tuning will be carried out using 2 different packages, the ranger package and the caret package.   
 
 
 
