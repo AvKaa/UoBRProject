@@ -1,6 +1,6 @@
 ---
-title: "Summative Assessment"
-author: "Avekan"
+title: "SCEM Summative Section A"
+author: "Averil Kan (ov21312)"
 date: "12/11/2021"
 output: html_document
 ---

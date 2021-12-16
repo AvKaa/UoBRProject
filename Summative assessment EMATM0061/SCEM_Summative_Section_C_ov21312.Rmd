@@ -6,20 +6,20 @@ output: html_document
 ---
 # Objectives
 
-The following report demonstrates a Random Forest predictive modelling on the dataset 'winequality-red'. The objective of the model is as follows:
+The following report demonstrates a Random Forest predictive modeling on the dataset ‘winequality-red’. The objectives of the model are as follows:
 
 - Observe the capabilities of the Random Forest model on both an imbalanced and balanced data set.
-- Observe how the accuracy differs when the model is fed with different subsets of data as test sets with use of the k-fold cross validation technique.
-- Evaluate the affects of hyperparameters tuning on the Random Forest model accuracy.
+- Observe how the accuracy differs when the model is fed with different subsets of data as test sets with the use of the k-fold cross-validation technique.
+- Evaluate the effects of hyperparameters tuning on the Random Forest model accuracy.
 - Evaluate the benefits and drawbacks of carrying out Random Forest through other methods (packages). 
 
 # Random Forest Introduction
 
 To understand the random forest model, the concept of a decision tree must be realised.
 
-In a dataset the decision tree splits the data recursively using the decision nodes unless it is left with pure leaf nodes. By maximizing the entropy gain to find the best split. If a given data sample satisfies the condition at a decision node it will branch towards the left, else to the right until it reaches a leaf node where a class label is assigned to it. However, decision trees are highly sensitive to the training data which could result in high variance, thus, the model might fail to generalise.
+In a dataset, the decision tree splits the data recursively using the decision nodes unless it is left with pure leaf nodes. By maximizing the entropy gain to find the best split. If a given data sample satisfies the condition at a decision node it will branch towards the left, else to the right until it reaches a leaf node where a class label is assigned to it. However, decision trees are highly sensitive to the training data which could result in high variance, thus, the model might fail to generalise.
 
-This is where the Random Forest comes in handy, the Random Forest is a collection of multiple random decision trees and is much less sensitive to the training data. When a data set is passed into a Random Forest model, new sub-datasets are built from the original data. Every sub-dataset contains the same number of rows as the original one and each row is randomly sampled with replacement from the original dataset. This process of generating new datasets is known as Bootstrapping. An independent decision tree will then be trained on each bootstrapped sub-datasets with a subset of features that are randomly selected for each tree (not all of the features are used in each tree). After a forest is formed, data points will be passed through each tree one by one and the predictions will be recorded. The predictions will then be aggregated through a 'majority vote' which would result in a classification prediction. Random Forest can also be used for regression problems just by taking the average instead of the 'majority vote' for combined predctions. 
+This is where the Random Forest comes in handy, the Random Forest is a collection of multiple random decision trees and is much less sensitive to the training data. When a data set is passed into a Random Forest model, new sub-datasets are built from the original data. Every sub-dataset contains the same number of rows as the original one and each row is randomly sampled with replacement from the original dataset. This process of generating new datasets is known as Bootstrapping. An independent decision tree will then be trained on each bootstrapped sub-datasets with a subset of features that are randomly selected for each tree (not all of the features are used in each tree). After a forest is formed, data points will be passed through each tree one by one and the predictions will be recorded. The predictions will then be aggregated through a ‘majority vote’ which would result in a classification prediction. Random Forest can also be used for regression problems just by taking the average instead of the ‘majority vote’ for combined predictions.
 
 
 ```{r, echo=FALSE}
@@ -33,7 +33,7 @@ This is where the Random Forest comes in handy, the Random Forest is a collectio
 # install.packages("microbenchmark")
 ```
 
-```{r, include=FALSE}
+```{r, include=FALSE, message=FALSE,warning=FALSE}
 # library(ggplot2, ggthemes, corrplot, reshape2, dplyr, randomForest)
 library(tidyverse)
 library(corrplot)
@@ -45,7 +45,7 @@ library(microbenchmark)
 ```
 
 # Red Wine Quality Dataset Introduction
-For this project, the Red Wine Quality dataset was used to build various classification models to predict the quality of red wines. A “quality” score between 0 and 10 is given to each wine in this dataset.  The quality of a wine is determined by eleven input variables as following:
+For this project, the Red Wine Quality dataset was used to build various classification models to predict the quality of red wines. A “quality” score between 0 and 10 is given to each wine in this dataset. The quality of a wine is determined by eleven input variables as follows:
 
 - Fixed acidity
 - Volatile acidity
@@ -59,7 +59,7 @@ For this project, the Red Wine Quality dataset was used to build various classif
 - Sulfates
 - Alcohol
 
-The summary of the dataset is displayed as following:
+The summary of the dataset is displayed as follows:
 ```{r, message=FALSE,warning=FALSE}
 #Load red wine dataset
 redwine<-read.csv("./winequality-red.csv")
@@ -82,7 +82,7 @@ corrplot(cor(redwine), method = "square",
          type = "full", tl.cex=0.8,tl.col = "black")
 ```
 
-As wine quality was the prediction objective, consider the final column/row in order to find out which variable(s) has the strongest relationship with the wine quality. It can be observed from the heat map that alcohol has the strongest correlation with wine quality.
+As wine quality was the prediction objective, consider the final column/row to find out which variable(s) has the strongest relationship with the wine quality. It can be observed from the heat map that alcohol has the strongest correlation with wine quality.
 
 ```{r}
 # Correlation test
@@ -104,11 +104,11 @@ ggplot(redwine,aes(x=quality))+
   theme_classic()
 ```
 
-It can be observed that the quality of wine was not distributed evenly, and that wines of quality 1,2,9 and 10 are not present. Moreover, most wine qualities are concentrated at 5 and 6. A split for bad quality wine (1-5) and good quality wine (6-10) will be implemented. However, to test the capability of the Random Forest model on an imbalanced dataset, the dataset is first passed on as it is containing 6 categories of wine quality. This is done because the undersampling/ oversampling of data points are common problems in the field of data mining and machine learning.
+It can be observed that the quality of the wine was not distributed evenly and that wines of quality 1,2,9 and 10 are not present. Moreover, most wine qualities are concentrated at 5 and 6. A split for bad quality wine (1-5) and good quality wine (6-10) will be implemented. However, to test the capability of the Random Forest model on an imbalanced dataset, the dataset is first passed on as it is containing 6 categories of wine quality. This is done because the undersampling/ oversampling of data points are common problems in the field of data mining and machine learning.
 
 # Predictive Modelling 
 
-The dataset was split into the train and test datasets with a split ratio of 0.8. It is important to perform a test split, as the goal of predictive modelling is to observe the accuracy of the model on data points that are not used in training.
+The dataset was split into the train and test datasets with a split ratio of 0.8. It is important to perform a test split, as the goal of predictive modeling is to observe the accuracy of the model on data points that are not used in training.
 
 ```{r, message=FALSE,warning=FALSE}
 seed=0
@@ -151,15 +151,15 @@ accuracy_test
 cm_test
 ```
 
-The overall accuracy of the model is around 73%, which is decent considering only the baseline model of Random Forest was implemented. It can also be observed that most of the errors originates from the differentiation of 5 and 6 quality wines. This is predicted as most wines are concentrated at quality 5 and 6, and that the input variables are harder to differentiate due to the quality being one apart.
+The overall accuracy of the model is around 73%, which is decent considering only the baseline model of Random Forest was implemented. It can also be observed that most of the errors originate from the differentiation of 5 and 6 quality wines. This is predicted as most wines are concentrated at quality 5 and 6 and that the input variables are harder to differentiate due to the quality being one apart.
 
-However, the model demonstrated a clear overfitting behavior as it performs really well on the training set (100% accuracy) and does not perform as well on the test set (73% accuracy). For a better approximation for the accuracy cross validation is then implemented.
+However, the model demonstrated a clear overfitting behavior as it performs well on the training set (100% accuracy) and does not perform as well on the test set (73% accuracy). For a better approximation for the accuracy, cross-validation is then implemented.
 
-# Cross Validation
+# Cross-Validation
 
-After the model is trained, assumptions cannot be made on whether the model is going to work well on data that it has not seen before yet. In other words, it is uncertain that the model will have the desired accuracy and variance in the production environment. Hence, an assurance of the accuracy of the predictions that the trained model produced is required. This is done through the validation of the model. The validation process decides whether the numerical results quantifying hypothesised relationships between each variable are acceptable as descriptions of the data.
+After the model is trained, assumptions cannot be made on whether the model is going to work well on data that it has not seen before yet. In other words, it is uncertain that the model will have the desired accuracy and variance in the production environment. Hence, an assurance of the accuracy of the predictions that the trained model produced is required. This is done through the validation of the model. The validation process decides whether the numerical results quantifying hypothesized relationships between each variable are acceptable as descriptions of the data.
 
-A K-Folds cross validation technique was then implemented to verify if the accuracy is consistent when different data points are fed in as test data. An advantage of the K-Fold technique is that it ensures that every data points from the original dataset has the chance in participating in the training and the test set.
+A K-Folds cross-validation technique was then implemented to verify if the accuracy is consistent when different data points are fed in as test data. An advantage of the K-Fold technique is that it ensures that every data point from the original dataset has the chance in participating in the training and the test set.
 
 ```{r, message=FALSE,warning=FALSE}
 set.seed(seed) # Set seed for replicability 
@@ -200,13 +200,13 @@ for (i in 1:5){
 mean(acc)
 ```
 
-The cross validation resulted in an average accuracy of around 70% which is around 3% lower than the single test split Random Forest model. This is unexpected as cross-validation tends to result in less overfitting, this might be the result of the seed selection. However, the key of performing cross validation on the model is to provide a more realistic proxy for the accuracy. Thus, the accuracy of the model is accepted as approximately 70%.
+The cross-validation resulted in an average accuracy of around 70% which is around 3% lower than the single test split Random Forest model. This is unexpected as cross-validation tends to result in less overfitting, this might be the result of the seed selection. However, the key to performing cross-validation on the model is to provide a more realistic proxy for the accuracy. Thus, the accuracy of the model is accepted as approximately 70%.
 
 # Variable Importance
 
-For each tree, the prediction error on the out-of-bag (OOB) portion of the data is recorded. In the case of classification this is the error rate for classification (MSE for regression). Then the same is done after permuting each predictor variable. The difference between the two are then averaged over all trees and normalized by the standard deviation of the differences. The importance function is part of the Random Forest package.
+For each tree, the prediction error on the out-of-bag (OOB) portion of the data is recorded. In the case of classification, this is the error rate for classification (MSE for regression). Then the same is done after permuting each predictor variable. The difference between the two is then averaged over all trees and normalized by the standard deviation of the differences. The important function is part of the Random Forest package.
 
-The respective variable importance can be observed with the following plot: 
+The respective variable importance can be observed with the following plot:
 
 ```{r, message=FALSE,warning=FALSE}
 # Get importance
@@ -230,7 +230,7 @@ ggplot(rank_Importance, aes(x = reorder(Variables, Importance),
   theme_bw()
 ```
 
-The variable importance plot demonstrates that the 'alcohol' level has the greatest impact on the quality of the red wine. This is coherent with the correlation heat map shown above. The correlations between the variables of top 4 importance and the quality of the red wines are then further investigated by the following scatter plots:
+The variable importance plot demonstrates that the ‘alcohol’ level has the greatest impact on the quality of the red wine. This is coherent with the correlation heat map shown above. The correlations between the variables of top 4 importance and the quality of the red wines are then further investigated by the following scatter plots:
 
 ```{r, message=FALSE,warning=FALSE}
 a_q <- ggplot(redwine, aes(alcohol, quality)) +
@@ -255,17 +255,18 @@ plot_grid(a_q, va_q, s_q, tsd_q, labels = "AUTO")
 ```
 
 
-The plots demonstrates that wines with higher quality have higher levels of alcohol, have a lower volatile acidity, higher levels of sulphates, and lower levels of total sulfur dioxide on average.
+The plots demonstrate that wines with higher quality have higher levels of alcohol, have a lower volatile acidity, higher levels of sulphates, and lower levels of total sulfur dioxide on average.
 
 # Hyperparameter tuning
 
-While the model parameters are learned during the training process, hyperparameters must be set before training. In the case of a Random Forest model, the hyperparameters can include the number of decision tress, the number of features considered when splitting a node by each tree, the node size, sample size etc. The tuning of these parameters relies on a more experimental approach. Therefore, iterations will be carried out in order to search for the best combination(s) of hyperparameters.  
+While the model parameters are learned during the training process, hyperparameters must be set before training. In the case of a Random Forest model, the hyperparameters can include the number of decision trees, the number of features considered when splitting a node by each tree, the node size, sample size, etc. The tuning of these parameters relies on a more experimental approach. Therefore, iterations will be carried out to search for the best combination(s) of hyperparameters.
 
-The hyperparameters selected to be tuned for the random forest model are defined as following:
--mtry: The number of variables available for splitting at each tree node. In classification models, the function default is floor of the square root of the number of predictor variables. Which is 3 for the red wine data frame.
--node_size:  The minimum number of observations in a terminal node. A large node size causes smaller trees to be grown, thus, takes less time. The default value for the Random Forest classification model is 1 (5 for regression).
--sample_size = The sample size of a random forest acts as a control of the "degree of randomness", thus, a way of adjusting the bias variance trade-off. The increase in sample size leads to a "less random" forest, which would induce the tendency of an overfitting model. On the other hand decreasing the sample size increases the variation per tree within the forest at the expense of model performance. The sample size ranges from 0 < sample size ≤ 1.
--ntree = The number of trees in the forest, the ntree value is independent of other hyperparameters as the accuracy will converge into a stable value after a certain number of trees. Hence, the convergence ntree value will be computed firstly. It is also important that the greater the value of ntree the greater computational force required.
+The hyperparameters selected to be tuned for the random forest model are defined as follows:
+
+- mtry: The number of variables available for splitting at each tree node. In classification models, the function default is the floor of the square root of the number of predictor variables. Which is 3 for the red wine data frame.
+- node_size:  The minimum number of observations in a terminal node. A large node size causes smaller trees to be grown, thus, takes less time. The default value for the Random Forest classification model is 1 (5 for regression).
+- sample_size: The sample size of a random forest acts as a control of the “degree of randomness”, thus, a way of adjusting the bias-variance trade-off. The increase in sample size leads to a “less random” forest, which would induce the tendency of an overfitting model. On the other hand, decreasing the sample size increases the variation per tree within the forest at the expense of model performance. The sample size ranges from 0 < sample size ≤ 1.
+- ntree: The number of trees in the forest, the ntree value is independent of other hyperparameters as the accuracy will converge into a stable value after a certain number of trees. Hence, the convergence ntree value will be computed firstly. It is also important that the greater the value of ntree the greater computational force required.
 
 The accuracy of the baseline Random Forest model across a sequence of ntree values can be observed with the following plot:
 
@@ -291,7 +292,8 @@ tune_ntree %>%
   geom_smooth(se=F)+
   theme_bw()
 ```
-The accuracy stabalises at around 73.5% after the ntree value reaches 600. Thus, to minimize computational force for hyperparameter tuning, a ntree value of 600 will be used.
+
+The accuracy stabilises at around 73.5% after the ntree value reaches 600. Thus, to minimize computational force for hyperparameter tuning, a ntree value of 600 will be used.
 
 ```{r, message=FALSE,warning=FALSE}
 # hyperparameter grid search
@@ -303,10 +305,11 @@ hyper_grid <- expand.grid(
 )
 ```
 
-Random forest model tuning to obtain the best combinations of hyperparameters shown in the table as following:
+Random forest model tuning to obtain the best combinations of hyperparameters shown in the table as follows:
 
 ```{r, message=FALSE,warning=FALSE}
-redwine_train<-redwine_train%>%mutate(quality=as.factor(quality)) # `quality` must be fed into the model as factor
+redwine_train<-redwine_train%>%mutate(quality=as.factor(quality)) # `quality` must be fed into the model as factor for classification
+
 for(i in 1:nrow(hyper_grid)) {
   
   # Train model
@@ -334,13 +337,14 @@ hyper_grid %>% # Display the top 10 hyperparameter combination
   dplyr::arrange(desc(acc)) %>%
   head(10)
 ```
-The best combination of hyperparameters results in an accuracy of around 75%, which is 5% above the k-fold cross-validated model. This shows that the tuning of hyperparameters does have a good amount of impact on Random Forest predictive modelling.
 
-The table shows that the best mtry values are 1 and 3, which is in coherent with the Random Forest theory, Where the best mtry value should be the square root of the number of predictor values (the redwine dataset contains 12 predictor values, floor(sqrt(3))=3). It can also be observed that the most suitable node size is 2 with three occurrence and 4 with four occurrence in the table. However, a 'best' sample size value cannot be ascertained, this might the result of heavier dependencies that certain hyperparameters have on other hyperparameters.
+The best combination of hyperparameters results in an accuracy of around 75%, which is 5% above the k-fold cross-validated model. This shows that the tuning of hyperparameters does have a good amount of impact on Random Forest predictive modeling.
+
+The table shows that the best mtry values are 1 and 3, which is coherent with the Random Forest theory, Where the best mtry value should be the square root of the number of predictor values (the redwine dataset contains 12 predictor values, floor(sqrt(3))=3). It can also be observed that the most suitable node size is 2 with three occurrences and 4 with four occurrences in the table. However, a ‘best’ sample size value cannot be ascertained, this might be the result of heavier dependencies that certain hyperparameters have on other hyperparameters.
 
 # Random Forest on Bianry Classification
 
-As mentioned above, most wine qualities are concentrated at 5 and 6. After testing the capabilities of the Random Forest model on an imbalanced dataset. The quality of wines will be redefined as bad quality wine (1-5) and good quality wine (6-10) to obtain a relatively balanced dataset for  a binary classification prediction model. 
+As mentioned above, most wine qualities are concentrated at 5 and 6. After testing the capabilities of the Random Forest model on an imbalanced dataset. The quality of wines will be redefined as bad quality wines (1-5) and good quality wines (6-10) to obtain a relatively balanced dataset for a binary classification prediction model.
 
 The distribution of good and bad quality wines can be observed with the following plot:
 ```{r, message=FALSE,warning=FALSE}
@@ -360,7 +364,8 @@ ggplot(redwine,aes(x=wine_quality,fill=factor(wine_quality)))+geom_bar(stat = "c
   theme_classic()
 ```
 
-Following the same methodology of test splitting, the Random Forest binary classification accuracy for the red wine dataset is obtained as following:
+Following the same methodology of test splitting, the Random Forest binary classification accuracy for the red wine dataset is obtained as follows:
+
 ```{r, message=FALSE,warning=FALSE}
 # Test split
 set.seed(seed)
@@ -400,7 +405,7 @@ accuracy_test
 cm_test
 ```
 
-The overall accuracy of the model is pretty high at around 86%. An overfitting behavior can still be observed, additionally, it can be seen that the model does a better job at predicting good wines than bad wines. A k-fold cross validation is again performed as following:
+The overall accuracy of the model is pretty high at around 86%. An overfitting behavior can still be observed, additionally, it can be seen that the model does a better job at predicting good wines than bad wines. K-fold cross-validation is again performed as follows:
 
 ```{r, message=FALSE,warning=FALSE}
 set.seed(seed) # Set seed for replicability 
@@ -435,9 +440,9 @@ for (i in 1:5){
 mean(acc)
 ```
 
-The cross validation accuracy is 82% which is also slightly lower than the single split random forest model (by 4%). 
+The cross-validation accuracy is 82% which is also slightly lower than the single split random forest model (by 4%).
 
-Following the same steps, create a hypergrid and pass it into the Random Forest mdoel for hyperparameter tuning.
+Following the same steps, create a hypergrid and pass it into the Random Forest model for hyperparameter tuning.
 
 ```{r, message=FALSE,warning=FALSE}
 # hyperparameter grid search
@@ -469,7 +474,6 @@ accuracy <- mean(pred_test == redwine_test$wine_quality)
 # Add confusion matrix to grid
 hyper_grid_binary$acc[i] <- accuracy
 ```
-
 
 ```{r, message=FALSE,warning=FALSE}
 redwine <- redwine %>%
@@ -503,18 +507,16 @@ hyper_grid_binary %>% # Display the top 10 hyperparameter combination
   head(10)
 ```
 
-The best combination of hyperparameters results in an accuracy of around 87%, which is 5% above the k-fold cross-validated model. 
+The best combination of hyperparameters results in an accuracy of around 87%, which is 5% above the k-fold cross-validated model.
 
 # Random Forest from different packages
 
-<<<<<<< HEAD
-In the following section the hyperparameter tuning will be carried out using 2 different packages, the ranger package and the caret package.   
-=======
-As the 'randomForest()' package is computation expensive, the following section aims to explore hyperparameter tuning utilizing other Random Forest packages. 
+In the following section, the hyperparameter tuning will be carried out using a different package, the ranger package. As the ‘randomForest()’ package is computation expensive, the following section aims to explore the computational expense of hyperparameter tuning on the Ranger package.
 
-The 'Ranger()' package is used for comparison as it is designed to maximize computational efficiency. The randomForest() package uses Breiman’s Random Forest implementation, while ranger() supplements its theory from a wide range of interpretations aiming to maximize speed. 
+The ‘Ranger()’ package is used for comparison as it is designed to maximize computational efficiency. The randomForest() package uses Breiman’s Random Forest implementation, while ranger() supplements its theory from a wide range of interpretations aiming to maximize speed.
 
-A benchmark comparison of the RandomForest model using the microbenchmark() function is shown as following:
+A benchmark comparison of the RandomForest model using the microbenchmark() function is shown as follows:
+
 
 ```{r, message=FALSE,warning=FALSE}
 redwine<-read.csv("./winequality-red.csv")
@@ -524,7 +526,6 @@ set.seed(seed)
 RandomForest_bm <- microbenchmark(
   randomForest(factor(quality)~.-quality, redwine, ntree = 500, mtry=3),
 times = 25, unit = 's')
->>>>>>> 1f18e2c59f4da930ef8b3b978b5dc10a0966a530
 
 # Benchmark of ranger() function
 Ranger_bm <- microbenchmark(
@@ -533,7 +534,8 @@ times = 25, unit = 's')
 
 rbind(RandomForest_bm,Ranger_bm)
 ```
-The mean processing time for randomForest() is about 0.8 seconds. This is considered expensive for a dataframe with only 1600 rows. The ranger() function was designed for parallel processing. Hence, to demonstrate that ranger() is not just faster because of parallel processing but also a more efficient way of processing, the num.threads is set to 1. Results shows that the Ranger() package reduces the processing time by more than a half.
+
+The mean processing time for randomForest() is about 1.3 seconds. This is considered expensive for a data frame with only 1600 rows. The ranger() function was designed for parallel processing. Hence, to demonstrate that ranger() is not just faster because of parallel processing but also a more efficient way of processing, the num.threads is set to 1. Results show that the Ranger() package reduces the processing time by more than a half with only 0.6 seconds.
 
 Although the processing time is more than halved when using the Ranger() function, it is equally important to test the accuracy of the model computed by the function.
 
@@ -566,7 +568,7 @@ hyper_grid_ranger <- expand.grid(
   acc = 0 # Define empty list to store test accuracies
 )
 
-for(i in 1:nrow(hyper_grid_binary)) {
+for(i in 1:nrow(hyper_grid_ranger)) {
 
   # Train model
   model <- ranger(
@@ -595,14 +597,71 @@ hyper_grid_ranger %>% # Display the top 10 hyperparameter combination
 
 The maximum accuracy obtained after tuning the hyperparameters with the ranger() function is around 70% which is 5% lower than the accuracy obtained from the randomForest() function.
 
+<!-- ```{r, message=FALSE,warning=FALSE} -->
+<!-- set.seed(seed) # Set seed for replicability  -->
+
+<!-- num_groups = 5   -->
+<!-- n <- seq(5) -->
+<!-- s <- list() -->
+<!-- acc <- c() -->
+
+
+<!-- row_ind <- sample(nrow(redwine)) # Randomisation of row indices   -->
+<!-- redwine_randomized <- redwine[row_ind,] # Form randomised dataset -->
+<!-- split <- redwine_randomized %>% # Section the randomised dataset into 5 groups  -->
+<!--    group_by((row_number()-1) %/% (n()/num_groups)) %>% -->
+<!--    nest %>%  -->
+<!--    pull(data) -->
+
+<!-- # Define the indexes of datasets to be parsed on to either the train or test set in for each loop -->
+<!-- for (i in n){ -->
+<!--   s[length(s)+1]<-list(n[!(n %in% i)]) -->
+<!-- } -->
+
+<!-- # Run the randomForest function across each k-fold  -->
+<!-- for (i in 1:5){ -->
+<!--   test_set = split[[i]] -->
+<!--   train_set = data.frame() -->
+<!--   for(j in 1:4){ -->
+<!--     index<-s[[i]][j] -->
+<!--     train_set <- rbind(train_set,split[[index]]) -->
+<!--   } -->
+<!--     for(i in 1:nrow(hyper_grid_ranger)) { -->
+
+<!--     # Train model -->
+<!--     model <- ranger( -->
+<!--       formula         = quality~ ., -->
+<!--       data            = redwine_train, -->
+<!--       num.trees       = 600, # Set fix ntree value to 600 -->
+<!--       mtry            = hyper_grid_ranger$mtry[i], -->
+<!--       min.node.size   = hyper_grid_ranger$node_size[i], -->
+<!--       sample.fraction = hyper_grid_ranger$sample_size[i], -->
+<!--       seed            = seed -->
+<!--     ) -->
+
+<!--     # Predicting on test set -->
+<!--     pred_test <-predict(model, redwine_test_x) -->
+<!--     # Checking classification accuracy -->
+<!--     accuracy <- 1-model$prediction.error -->
+
+<!--     # Add confusion matrix to grid -->
+<!--     hyper_grid_ranger$acc[i] <- accuracy -->
+<!--   } -->
+<!-- } -->
+
+<!-- # Compute average accuracy  -->
+<!-- mean(acc) -->
+<!-- ``` -->
+
 # Summary
 
-From computation of the Random Forest model on the wine quality dataset performed above it can be concluded that:
+From the predictive modeling of the Random Forest model on the wine quality dataset performed above, it can be concluded that:
+
 - Cross validating the Random Forest model generally outputs a lower accuracy percentage. However, this value is a more realistic proxy of the accuracy of the model.
-- Variable importance evaluation shows that the higher ranked variables also demonstrates a stronger relationship with the quality through the use of scatter plots (ie, strong trend line observed in alcohol vs quality, weak trend line observed in total sulfur dioxide vs quality).
-- Hyperparameter tuning generally increases the accuracy of the model by 5% and demonstrates the importance of tailoring hyperparameters for the specific dataset.
-- It can be observed that the Random Forest model works better on Binary classification than on multi-class prediction. Hence, it might be more suitable to evaluate other models when dealing with a biased dataset.
-- The Ranger() version of Random Forest displays massive reduction in computational expense with a slight trade-off of accuracy. Thus, for larger datasets the Ranger() function should be considered over the original randomForest() function instead.
+- Variable importance evaluation shows that the higher-ranked variables also demonstrate a stronger relationship with the quality through the use of scatter plots (ie, strong trend line observed in alcohol vs quality, weak trend line observed in total sulfur dioxide vs quality). 
+- Hyperparameter tuning generally increases the accuracy of the model by 5% and demonstrates the importance of tailoring hyperparameters for each specific dataset.
+- It can be observed that the Random Forest model works better on Binary classification than on multi-class prediction. Hence, it might be more suitable to utilise other models when dealing with a biased dataset. 
+- The Ranger() function of the Random Forest displays a massive reduction in computational expense with a slight trade-off of accuracy. Thus, for larger datasets, the Ranger() function should be considered over the original randomForest() function, but, the randomForest() function should be considered in cases where precision is higher valued or when the dataset is relatively small.
 
 
 

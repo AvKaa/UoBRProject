@@ -1,6 +1,6 @@
 ---
-title: "SCEM_Summative_Section_B_ov21312"
-author: "Avekan"
+title: "SCEM Summative Section B"
+author: "Averil kan (ov21312)"
 date: "30/11/2021"
 output: html_document
 ---
