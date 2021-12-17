@@ -430,7 +430,12 @@ plot_grid(a_q, va_q, s_q, tsd_q, labels = &quot;AUTO&quot;)</code></pre>
 <h1>Hyperparameter tuning</h1>
 <p>While the model parameters are learned during the training process, hyperparameters must be set before training. In the case of a Random Forest model, the hyperparameters can include the number of decision trees, the number of features considered when splitting a node by each tree, the node size, sample size, etc. The tuning of these parameters relies on a more experimental approach. Therefore, iterations will be carried out to search for the best combination(s) of hyperparameters.</p>
 <p>The hyperparameters selected to be tuned for the random forest model are defined as follows:</p>
-<p>-mtry: The number of variables available for splitting at each tree node. In classification models, the function default is the floor of the square root of the number of predictor variables. Which is 3 for the red wine data frame. -node_size: The minimum number of observations in a terminal node. A large node size causes smaller trees to be grown, thus, takes less time. The default value for the Random Forest classification model is 1 (5 for regression). -sample_size: The sample size of a random forest acts as a control of the “degree of randomness”, thus, a way of adjusting the bias-variance trade-off. The increase in sample size leads to a “less random” forest, which would induce the tendency of an overfitting model. On the other hand, decreasing the sample size increases the variation per tree within the forest at the expense of model performance. The sample size ranges from 0 &lt; sample size ≤ 1. -ntree: The number of trees in the forest, the ntree value is independent of other hyperparameters as the accuracy will converge into a stable value after a certain number of trees. Hence, the convergence ntree value will be computed firstly. It is also important that the greater the value of ntree the greater computational force required.</p>
+<ul>
+<li>mtry: The number of variables available for splitting at each tree node. In classification models, the function default is the floor of the square root of the number of predictor variables. Which is 3 for the red wine data frame.</li>
+<li>node_size: The minimum number of observations in a terminal node. A large node size causes smaller trees to be grown, thus, takes less time. The default value for the Random Forest classification model is 1 (5 for regression).</li>
+<li>sample_size: The sample size of a random forest acts as a control of the “degree of randomness”, thus, a way of adjusting the bias-variance trade-off. The increase in sample size leads to a “less random” forest, which would induce the tendency of an overfitting model. On the other hand, decreasing the sample size increases the variation per tree within the forest at the expense of model performance. The sample size ranges from 0 &lt; sample size ≤ 1.</li>
+<li>ntree: The number of trees in the forest, the ntree value is independent of other hyperparameters as the accuracy will converge into a stable value after a certain number of trees. Hence, the convergence ntree value will be computed firstly. It is also important that the greater the value of ntree the greater computational force required.</li>
+</ul>
 <p>The accuracy of the baseline Random Forest model across a sequence of ntree values can be observed with the following plot:</p>
 <pre class="r"><code>set.seed(seed)
 
@@ -462,7 +467,8 @@ hyper_grid &lt;- expand.grid(
   acc = 0 # Define empty list to store test accuracies
 )</code></pre>
 <p>Random forest model tuning to obtain the best combinations of hyperparameters shown in the table as follows:</p>
-<pre class="r"><code>redwine_train&lt;-redwine_train%&gt;%mutate(quality=as.factor(quality)) # `quality` must be fed into the model as factor
+<pre class="r"><code>redwine_train&lt;-redwine_train%&gt;%mutate(quality=as.factor(quality)) # `quality` must be fed into the model as factor for classification
+
 for(i in 1:nrow(hyper_grid)) {
   
   # Train model
@@ -501,11 +507,11 @@ hyper_grid %&gt;% # Display the top 10 hyperparameter combination
 ## 9     3         1         0.9 0.743750
 ## 10    3         2         0.9 0.743750</code></pre>
 <p>The best combination of hyperparameters results in an accuracy of around 75%, which is 5% above the k-fold cross-validated model. This shows that the tuning of hyperparameters does have a good amount of impact on Random Forest predictive modeling.</p>
-<p>The table shows that the best mtry values are 1 and 3, which is coherent with the Random Forest theory, Where the best mtry value should be the square root of the number of predictor values (the redwine dataset contains 12 predictor values, floor(sqrt(3))=3). It can also be observed that the most suitable node size is 2 with three occurrences and 4 with four occurrences in the table. However, a ‘best’ sample size value cannot be ascertained, this might be the result of heavier dependencies that certain hyperparameters have on other hyperparameters.</p>
+<p>The table shows that the best mtry values are 1 and 3, which is coherent with the Random Forest theory, Where the best mtry value should be the square root of the number of predictor values (the redwine dataset contains 12 predictor values, floor(sqrt(12))=3). It can also be observed that the most suitable node size is 2 with three occurrences and 4 with four occurrences in the table. However, a ‘best’ sample size value cannot be ascertained, this might be the result of heavier dependencies that certain hyperparameters have on other hyperparameters.</p>
 </div>
 <div id="random-forest-on-bianry-classification" class="section level1">
 <h1>Random Forest on Bianry Classification</h1>
-<p>As mentioned above, most wine qualities are concentrated at 5 and 6. After testing the capabilities of the Random Forest model on an imbalanced dataset. The quality of wines will be redefined as a bad quality wine (1-5) and good quality wine (6-10) to obtain a relatively balanced dataset for a binary classification prediction model.</p>
+<p>As mentioned above, most wine qualities are concentrated at 5 and 6. After testing the capabilities of the Random Forest model on an imbalanced dataset. The quality of wines will be redefined as bad quality wines (1-5) and good quality wines (6-10) to obtain a relatively balanced dataset for a binary classification prediction model.</p>
 <p>The distribution of good and bad quality wines can be observed with the following plot:</p>
 <pre class="r"><code>redwine&lt;-read.csv(&quot;./winequality-red.csv&quot;) # Recall redwine.csv as &#39;quality&#39; was converted as factor above
 
@@ -688,9 +694,9 @@ rbind(RandomForest_bm,Ranger_bm)</code></pre>
 ##                                                                                                          expr
 ##                              randomForest(factor(quality) ~ . - quality, redwine, ntree = 500,      mtry = 3)
 ##  ranger(dependent.variable.name = &quot;quality&quot;, data = redwine, num.trees = 500,      mtry = 3, num.threads = 1)
-##        min        lq      mean    median        uq       max neval
-##  0.9962136 1.3842201 1.3289213 1.3969322 1.4254260 1.5001852    25
-##  0.5690596 0.5938644 0.6116419 0.6113659 0.6266248 0.6624603    25</code></pre>
+##        min        lq     mean    median        uq       max neval
+##  0.9915242 1.3204598 1.282597 1.3543833 1.3709431 1.4101976    25
+##  0.5693832 0.5965446 0.603866 0.6037428 0.6122605 0.6341936    25</code></pre>
 <p>The mean processing time for randomForest() is about 1.3 seconds. This is considered expensive for a data frame with only 1600 rows. The ranger() function was designed for parallel processing. Hence, to demonstrate that ranger() is not just faster because of parallel processing but also a more efficient way of processing, the num.threads is set to 1. Results show that the Ranger() package reduces the processing time by more than a half with only 0.6 seconds.</p>
 <p>Although the processing time is more than halved when using the Ranger() function, it is equally important to test the accuracy of the model computed by the function.</p>
 <pre class="r"><code>set.seed(seed)
@@ -721,7 +727,7 @@ hyper_grid_ranger &lt;- expand.grid(
   acc = 0 # Define empty list to store test accuracies
 )
 
-for(i in 1:nrow(hyper_grid_binary)) {
+for(i in 1:nrow(hyper_grid_ranger)) {
 
   # Train model
   model &lt;- ranger(
@@ -758,6 +764,52 @@ hyper_grid_ranger %&gt;% # Display the top 10 hyperparameter combination
 ## 9     1         1         0.8 0.6942924
 ## 10    9         1         0.9 0.6942924</code></pre>
 <p>The maximum accuracy obtained after tuning the hyperparameters with the ranger() function is around 70% which is 5% lower than the accuracy obtained from the randomForest() function.</p>
+<!-- ```{r, message=FALSE,warning=FALSE} -->
+<!-- set.seed(seed) # Set seed for replicability  -->
+<!-- num_groups = 5   -->
+<!-- n <- seq(5) -->
+<!-- s <- list() -->
+<!-- acc <- c() -->
+<!-- row_ind <- sample(nrow(redwine)) # Randomisation of row indices   -->
+<!-- redwine_randomized <- redwine[row_ind,] # Form randomised dataset -->
+<!-- split <- redwine_randomized %>% # Section the randomised dataset into 5 groups  -->
+<!--    group_by((row_number()-1) %/% (n()/num_groups)) %>% -->
+<!--    nest %>%  -->
+<!--    pull(data) -->
+<!-- # Define the indexes of datasets to be parsed on to either the train or test set in for each loop -->
+<!-- for (i in n){ -->
+<!--   s[length(s)+1]<-list(n[!(n %in% i)]) -->
+<!-- } -->
+<!-- # Run the randomForest function across each k-fold  -->
+<!-- for (i in 1:5){ -->
+<!--   test_set = split[[i]] -->
+<!--   train_set = data.frame() -->
+<!--   for(j in 1:4){ -->
+<!--     index<-s[[i]][j] -->
+<!--     train_set <- rbind(train_set,split[[index]]) -->
+<!--   } -->
+<!--     for(i in 1:nrow(hyper_grid_ranger)) { -->
+<!--     # Train model -->
+<!--     model <- ranger( -->
+<!--       formula         = quality~ ., -->
+<!--       data            = redwine_train, -->
+<!--       num.trees       = 600, # Set fix ntree value to 600 -->
+<!--       mtry            = hyper_grid_ranger$mtry[i], -->
+<!--       min.node.size   = hyper_grid_ranger$node_size[i], -->
+<!--       sample.fraction = hyper_grid_ranger$sample_size[i], -->
+<!--       seed            = seed -->
+<!--     ) -->
+<!--     # Predicting on test set -->
+<!--     pred_test <-predict(model, redwine_test_x) -->
+<!--     # Checking classification accuracy -->
+<!--     accuracy <- 1-model$prediction.error -->
+<!--     # Add confusion matrix to grid -->
+<!--     hyper_grid_ranger$acc[i] <- accuracy -->
+<!--   } -->
+<!-- } -->
+<!-- # Compute average accuracy  -->
+<!-- mean(acc) -->
+<!-- ``` -->
 </div>
 <div id="summary" class="section level1">
 <h1>Summary</h1>

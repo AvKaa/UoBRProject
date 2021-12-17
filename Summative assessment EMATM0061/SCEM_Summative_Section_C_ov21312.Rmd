@@ -340,7 +340,7 @@ hyper_grid %>% # Display the top 10 hyperparameter combination
 
 The best combination of hyperparameters results in an accuracy of around 75%, which is 5% above the k-fold cross-validated model. This shows that the tuning of hyperparameters does have a good amount of impact on Random Forest predictive modeling.
 
-The table shows that the best mtry values are 1 and 3, which is coherent with the Random Forest theory, Where the best mtry value should be the square root of the number of predictor values (the redwine dataset contains 12 predictor values, floor(sqrt(3))=3). It can also be observed that the most suitable node size is 2 with three occurrences and 4 with four occurrences in the table. However, a ‘best’ sample size value cannot be ascertained, this might be the result of heavier dependencies that certain hyperparameters have on other hyperparameters.
+The table shows that the best mtry values are 1 and 3, which is coherent with the Random Forest theory, Where the best mtry value should be the square root of the number of predictor values (the redwine dataset contains 12 predictor values, floor(sqrt(12))=3). It can also be observed that the most suitable node size is 2 with three occurrences and 4 with four occurrences in the table. However, a ‘best’ sample size value cannot be ascertained, this might be the result of heavier dependencies that certain hyperparameters have on other hyperparameters.
 
 # Random Forest on Bianry Classification
 
