@@ -55,6 +55,7 @@ GI = 1-\sum_{i=0}^{c} P_i^{2}
 \end{align}
 $$
 
+Where Pi denotes the probability of an element being classified for a distinct class and c is the number of the class.
 An example of the decision tree using the Iris dataset is shown as follows:
 
 ```{r, message=FALSE,warning=FALSE}
