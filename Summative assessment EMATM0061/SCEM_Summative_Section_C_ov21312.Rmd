@@ -4,23 +4,6 @@ author: "Averil Kan (ov21312)"
 date: "30/11/2021"
 output: html_document
 ---
-# Objectives
-
-The following report demonstrates a Random Forest predictive modeling on the dataset ‘winequality-red’. The objectives of the model are as follows:
-
-- Observe the capabilities of the Random Forest model on both an imbalanced and balanced data set.
-- Observe how the accuracy differs when the model is fed with different subsets of data as test sets with the use of the k-fold cross-validation technique.
-- Evaluate the effects of hyperparameters tuning on the Random Forest model accuracy.
-- Evaluate the benefits and drawbacks of carrying out Random Forest through other methods (packages). 
-
-# Random Forest Introduction
-
-To understand the random forest model, the concept of a decision tree must be realised.
-
-In a dataset, the decision tree splits the data recursively using the decision nodes unless it is left with pure leaf nodes. By maximizing the entropy gain to find the best split. If a given data sample satisfies the condition at a decision node it will branch towards the left, else to the right until it reaches a leaf node where a class label is assigned to it. However, decision trees are highly sensitive to the training data which could result in high variance, thus, the model might fail to generalise.
-
-This is where the Random Forest comes in handy, the Random Forest is a collection of multiple random decision trees and is much less sensitive to the training data. When a data set is passed into a Random Forest model, new sub-datasets are built from the original data. Every sub-dataset contains the same number of rows as the original one and each row is randomly sampled with replacement from the original dataset. This process of generating new datasets is known as Bootstrapping. An independent decision tree will then be trained on each bootstrapped sub-datasets with a subset of features that are randomly selected for each tree (not all of the features are used in each tree). After a forest is formed, data points will be passed through each tree one by one and the predictions will be recorded. The predictions will then be aggregated through a ‘majority vote’ which would result in a classification prediction. Random Forest can also be used for regression problems just by taking the average instead of the ‘majority vote’ for combined predictions.
-
 
 ```{r, echo=FALSE}
 # #Required libraries 
@@ -42,7 +25,49 @@ library(ranger)
 library(caret)
 library(cowplot)
 library(microbenchmark)
+library(rpart)
+library(rpart.plot)
 ```
+
+# Objectives
+
+The following report demonstrates a Random Forest predictive modeling on the dataset ‘winequality-red’. The objectives of the model are as follows:
+
+- Observe the capabilities of the Random Forest model on both an imbalanced and balanced data set.
+- Observe how the accuracy differs when the model is fed with different subsets of data as test sets with the use of the k-fold cross-validation technique.
+- Evaluate the effects of hyperparameters tuning on the Random Forest model accuracy.
+- Evaluate the benefits and drawbacks of carrying out Random Forest through other methods (packages). 
+
+# Decision Tree
+
+To understand the random forest model, the concept of a decision tree must be realised.
+
+In a dataset, the decision tree splits the data recursively using the decision nodes unless it is left with pure leaf nodes. By maximizing the entropy gain to find the best split. If a given data sample satisfies the condition at a decision node it will branch towards the left, else to the right until it reaches a leaf node where a class label is assigned to it. However, decision trees are highly sensitive to the training data which could result in high variance, thus, the model might fail to generalise.
+
+The randomForest() function uses the CART Algorithm in both classification and regression. The Gini Index criterion is used to split nodes into sub-nodes within the CART Algorithm, starting with the training set as a root node.once the root node was successfully split in two, the subsets are split using the same logic recursively until pure sub-nodes or maximum number of leaves in a growing tree is found. This is also termed as Tree pruning.
+
+The calculate the Gini index is as follows:
+
+$$
+GI =  $\sum_{i=0}^{c} P_i (1-P_i) \\
+GI = 1-$\sum_{i=0}^{c} P_i^{2}
+$$
+
+An example of the decision tree using the Iris dataset is shown as follows:
+
+```{r}
+Iris<-read.csv("./Iris.csv")
+tree <- rpart(Species~., data=Iris, method="class")
+rpart.plot(tree)
+```
+
+The ratios of species can be observed at each split from the decision tree.
+
+
+# Random Forest Introduction
+
+The Random Forest is a collection of multiple random decision trees and is much less sensitive to the training data. When a data set is passed into a Random Forest model, new sub-datasets are built from the original data. Every sub-dataset contains the same number of rows as the original one and each row is randomly sampled with replacement from the original dataset. This process of generating new datasets is known as Bootstrapping. An independent decision tree will then be trained on each bootstrapped sub-datasets with a subset of features that are randomly selected for each tree (not all of the features are used in each tree). After a forest is formed, data points will be passed through each tree one by one and the predictions will be recorded. The predictions will then be aggregated through a ‘majority vote’ which would result in a classification prediction. Random Forest can also be used for regression problems just by taking the average instead of the ‘majority vote’ for combined predictions.
+
 
 # Red Wine Quality Dataset Introduction
 For this project, the Red Wine Quality dataset was used to build various classification models to predict the quality of red wines. A “quality” score between 0 and 10 is given to each wine in this dataset. The quality of a wine is determined by eleven input variables as follows:

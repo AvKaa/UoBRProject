@@ -44,8 +44,10 @@ vary_q
 ```
 
 ## B.2
+
 ### (a)
-Probability mass function of X:
+
+Probability mass function of X.
 $$
 x =\begin{cases}
 0 & \alpha \\
@@ -57,6 +59,7 @@ $$
 
 ### (b)
 
+An expression for the expectation of X in terms of α,β,γ.
 $$
 \begin{align}
 E[Y] &= 0 \cdot P(Y=0) +1 \cdot P(Y=1) +2 \cdot P(Y=2) +5 \cdot P(Y=5) \\
@@ -67,46 +70,43 @@ $$
 
 ### (c)
 
+An expression for the population variance of X in terms of α,β,γ.
+
 $$
 \begin{align}
-Var[Y] &= 0^2 \cdot P(Y=0) +1^2 \cdot P(Y=1) +2^2 \cdot P(Y=2) +5^2 \cdot P(Y=5) -2^2\\
-&= 0+0.1+0.8+7.5-4 \\
-&=4.4
+Var(X) &= E[X^2]-E[X]^2 \\
+&= \alpha + 4\beta +25 \gamma - (\alpha+2\beta+5\gamma)^2 \\
 \end{align}
 $$
 
 ### (d)
 
+An expression for the expectation of the random variable X in terms of α,β,γ.
 $$
 \begin{align}
 E[\overline{X}]&=E\Bigg[\frac{1}{n} \sum_{i=1}^{n}X_{i}\Bigg]\\
-&=\frac{1}{n}\sum_{i=1}^{n}X_{i}\\
-&=E[Y] \\
-&=2
+&=\frac{1}{n}\sum_{i=1}^{n}E[X_{i}]\\
+&=\frac{1}{n} \cdot n \cdot (\alpha+2\beta+5\gamma) \\
+&=\alpha+2\beta+5\gamma \\
 \end{align}
 $$
 
 ### (e)
 
+An expression for the population variance of the random variable X in terms of α,β,γ,n:
 $$
 \begin{align}
 Var(\overline{X}) &= Var\Bigg(\frac{1}{n} \sum_{i=1}^{n}X_{i}\Bigg)\\
 &=\sum_{i=1}^{n}Var\Big(\frac{1}{n}\cdot X_{i}\Big)\\
 &=\sum_{i=1}^{n} \frac{1}{n^2} Var\Big(X_{i}\Big)\\
-&=\frac{n}{n^2}Var\Big(Y\Big)\\
-&=\frac{1}{n}Var\Big(Y\Big)\\
-\\
-\\
-\\
-Var(Y)&=E((Y-E[Y])^2)\\
-&=E(Y^2-2YE[Y]+E[Y]^2)\\
-&=E[Y^2]-2E[Y]\cdot E[Y]+E[Y]^2)\\
-&=E[Y^2]-E[Y]^2
+&=\frac{n}{n^2} \cdot [\alpha + 4\beta +25 \gamma - (\alpha+2\beta+5\gamma)^2] \\
+&=\frac{1}{n} \cdot [\alpha + 4\beta +25 \gamma - (\alpha+2\beta+5\gamma)^2]\\
 \end{align}
 $$
 
 
 ### (f)
+
 ```{r}
 set.seed(0)
 
@@ -125,6 +125,8 @@ sample_X_0125 <- function(alpha,beta,gamma,n){
 alpha = 0.1
 beta = 0.2
 gamma = 0.3
+
+# (g)
 
 x <- sample_X_0125(alpha,beta,gamma,10000)
 X_bar <- mean(x)
@@ -246,7 +248,7 @@ $$
 $$
 
 ### (d)
-The behavior of the maximum likelihood estimator λˆMLE for λ0 on simulated data 
+The behavior of the maximum likelihood estimator λˆMLE for λ0 on simulated data. 
 ```{r}
 set.seed(0)
 num_trials_per_sample_size<-100
@@ -283,7 +285,7 @@ birds_data_original %>%
 ```
 
 ### (e)
-Compute and display the maximum likelihood estimate of the rate parameter λˆMLE
+Compute and display the maximum likelihood estimate of the rate parameter λˆMLE.
 ```{r}
 birds_data_original <- birds_data_original %>%
   mutate(time_diffs=lead(Time)-Time)
@@ -296,13 +298,14 @@ lambda_MLE
 ```
 
 ### (f)
-Give a confidence interval for λ0 with a confidence level of 95%
+Give a confidence interval for λ0 with a confidence level of 95%.
 ```{r}
 alpha <- 0.05
-n <- length(time_diffs)
-t <- qt(1-alpha/2, df=n-1)
-l <- mean(time_diffs, na.rm=T)-t/sqrt(n)*sd(time_diffs, na.rm=T)
-u <- mean(time_diffs, na.rm=T)+t/sqrt(n)*sd(time_diffs, na.rm=T)
-c(l,u)
+z_alpha <- qnorm(1-alpha/2)
+n <- length(time_diffs)-1
+n_mean <- mean(time_diffs,na.rm=T)
+l <- (1/n_mean)*(1-z_alpha/sqrt(n))
+u <- (1/n_mean)*(1+z_alpha/sqrt(n))
 
+c(l,u)
 ```
