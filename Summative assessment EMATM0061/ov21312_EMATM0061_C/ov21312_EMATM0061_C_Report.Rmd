@@ -49,13 +49,15 @@ The randomForest() function uses the CART Algorithm in both classification and r
 The calculate the Gini index is as follows:
 
 $$
-GI =  $\sum_{i=0}^{c} P_i (1-P_i) \\
-GI = 1-$\sum_{i=0}^{c} P_i^{2}
+\begin{align}
+GI =  \sum_{i=0}^{c} P_i (1-P_i) \\
+GI = 1-\sum_{i=0}^{c} P_i^{2}
+\end{align}
 $$
 
 An example of the decision tree using the Iris dataset is shown as follows:
 
-```{r}
+```{r, message=FALSE,warning=FALSE}
 Iris<-read.csv("./Iris.csv")
 tree <- rpart(Species~., data=Iris, method="class")
 rpart.plot(tree)
